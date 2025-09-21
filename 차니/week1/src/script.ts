@@ -30,6 +30,8 @@ const renderTasks = (): void => {
     doneList.appendChild(doneElement);
   });
 };
+
+// 할 일 입력
 const getTodoText = (): string => {
   return todoInput.value.trim();
 };
