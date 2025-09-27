@@ -1,19 +1,9 @@
-type Task = { id: number; text: string; done: boolean };
+import { useTodo } from "../contexts/TodoContext";
+import type { Task } from "../types/Todo";
 
-type Props = {
-  task: Task;
-  // handler props-drilling 종착지
-  onComplete?: (id: number) => void;
-  onUndo?: (id: number) => void;
-  onDelete?: (id: number) => void;
-};
+export default function TaskItem({ task }: { task: Task }) {
+  const { completeTask, undoTask, deleteTask } = useTodo();
 
-export default function TaskItem({
-  task,
-  onComplete,
-  onUndo,
-  onDelete,
-}: Props) {
   return (
     <li className="render-container__item">
       <span className="render-container__item-text">{task.text}</span>
@@ -22,8 +12,7 @@ export default function TaskItem({
         <button
           className="render-container__item-button"
           style={{ backgroundColor: "#28a745" }}
-          // props-drilling으로 전달된 handler의 최종 소비 지점
-          onClick={() => onComplete?.(task.id)}
+          onClick={() => completeTask(task.id)}
         >
           완료
         </button>
@@ -32,15 +21,13 @@ export default function TaskItem({
           <button
             className="render-container__item-button"
             style={{ backgroundColor: "#28a745" }}
-            // props-drilling으로 전달된 handler의 최종 소비 지점
-            onClick={() => onUndo?.(task.id)}
+            onClick={() => undoTask(task.id)}
           >
             되돌리기
           </button>
           <button
             className="render-container__item-button"
-            // props-drilling으로 전달된 handler의 최종 소비 지점
-            onClick={() => onDelete?.(task.id)}
+            onClick={() => deleteTask(task.id)}
           >
             삭제
           </button>

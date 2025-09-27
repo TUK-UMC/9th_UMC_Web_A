@@ -1,14 +1,20 @@
-import type { FormEvent } from "react";
+import type React from "react";
+import { useTodo } from "../contexts/TodoContext";
 
-type Props = {
-  input: string;
-  onChange: (v: string) => void;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
-};
+export default function TodoForm() {
+  const { input, setInput, addTask } = useTodo();
 
-export default function TodoForm({ input, onChange, onSubmit }: Props) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    addTask(input);
+  };
+
   return (
-    <form id="todo-form" className="todo-container__form" onSubmit={onSubmit}>
+    <form
+      id="todo-form"
+      className="todo-container__form"
+      onSubmit={handleSubmit}
+    >
       <input
         type="text"
         id="todo-input"
@@ -16,7 +22,7 @@ export default function TodoForm({ input, onChange, onSubmit }: Props) {
         placeholder="할 일 입력"
         required
         value={input}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e): void => setInput(e.target.value)}
       />
       <button type="submit" className="todo-container__button">
         할 일 추가
