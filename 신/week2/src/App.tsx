@@ -1,12 +1,12 @@
 import "./App.css";
-import Todo from "./components/Todo";
-import { TodoProvider } from "./context/TodoContext";
+import { ThemeProvider } from "./context/ThemeProvider";
+import AppContent from "./components/AppContent";
 
 function App() {
   return (
-    <TodoProvider>
-      <Todo />
-    </TodoProvider>
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useTodo } from "../context/TodoContext";
+import { useTheme, THEME } from "../context/ThemeProvider";
+import clsx from "clsx";
 
 const TodoForm = () => {
   const [input, setInput] = useState<string>("");
   const { addTodo } = useTodo();
+  const { theme } = useTheme();
+
+  const isLightMode = theme === THEME.LIGHT;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,7 +26,10 @@ const TodoForm = () => {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         type="text"
-        className="todo-container__input"
+        className={clsx(
+          "todo-container__input transition-all",
+          isLightMode ? "bg-white text-black" : "bg-gray-700 text-white"
+        )}
         placeholder="할 일 입력"
         required
       />
