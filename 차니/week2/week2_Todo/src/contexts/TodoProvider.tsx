@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Task } from "../types/Todo";
-import { TodoContext } from "./TodoContext";
+import { TodoContext } from "./todoContext";
 
 export function TodoProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState("");
