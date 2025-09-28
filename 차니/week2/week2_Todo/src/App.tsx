@@ -8,7 +8,7 @@ export default function App() {
   return (
     <TodoProvider>
       <div className="todo-container">
-        <h1 className="todo-container__header">YONG TODO</h1>
+        <h1 className="todo-container__header">CHANI TODO</h1>
         <TodoForm />
         <div className="render-container">
           <TodoList />
