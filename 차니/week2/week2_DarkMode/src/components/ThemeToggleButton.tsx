@@ -1,4 +1,4 @@
-import { useTheme } from "../context/ThemeProvider";
+import { useTheme } from "../hooks/useTheme";
 import clsx from "clsx";
 import { THEME } from "../types/theme.types";
 

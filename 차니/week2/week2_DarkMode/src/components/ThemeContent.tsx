@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useTheme } from "../context/ThemeProvider";
+import { useTheme } from "../hooks/useTheme";
 import { THEME } from "../types/theme.types";
 
 export default function ThemeContent() {
