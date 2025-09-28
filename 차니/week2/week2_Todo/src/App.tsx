@@ -1,8 +1,8 @@
 import "../style.css";
 import TodoForm from "./components/TodoForm";
-import { TodoProvider } from "./contexts/TodoContext";
 import TodoList from "./components/TodoList";
 import DoneList from "./components/DoneList";
+import { TodoProvider } from "./contexts/TodoProvider";
 
 export default function App() {
   return (

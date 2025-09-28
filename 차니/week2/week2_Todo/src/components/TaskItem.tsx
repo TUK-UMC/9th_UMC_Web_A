@@ -1,4 +1,4 @@
-import { useTodo } from "../contexts/TodoContext";
+import { useTodo } from "../hooks/useTodo";
 import type { Task } from "../types/Todo";
 
 export default function TaskItem({ task }: { task: Task }) {
