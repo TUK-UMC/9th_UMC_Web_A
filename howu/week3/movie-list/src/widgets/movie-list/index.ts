@@ -1,0 +1,2 @@
+export { MovieListWidget } from './MovieListWidget';
+
