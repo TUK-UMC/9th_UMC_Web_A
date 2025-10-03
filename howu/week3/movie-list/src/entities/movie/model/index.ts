@@ -1,2 +1,13 @@
-export type { Movie, MoviesResponse } from './types';
+export type { 
+  Movie, 
+  MoviesResponse, 
+  MovieDetails, 
+  Credits, 
+  Cast, 
+  Crew, 
+  Genre, 
+  ProductionCompany, 
+  ProductionCountry, 
+  SpokenLanguage 
+} from './types';
 

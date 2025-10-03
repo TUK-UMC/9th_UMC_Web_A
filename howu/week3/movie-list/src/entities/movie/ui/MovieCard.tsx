@@ -1,4 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../../../shared/config';
+import { createMovieDetailPath } from '../../../shared/config/routes';
 import type { Movie } from '../model';
 
 interface MovieCardProps {
@@ -6,10 +8,18 @@ interface MovieCardProps {
 }
 
 export const MovieCard = ({ movie }: MovieCardProps) => {
+  const navigate = useNavigate();
   const imageUrl = getImageUrl(movie.poster_path, 'MEDIUM');
   
+  const handleClick = () => {
+    navigate(createMovieDetailPath(movie.id));
+  };
+  
   return (
-    <div className="relative group cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105">
+    <div 
+      className="relative group cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105"
+      onClick={handleClick}
+    >
       {/* 포스터 이미지 */}
       <div className="aspect-[2/3] w-full">
         {imageUrl ? (

@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../config';
-import type { MoviesResponse } from '../../entities/movie/model';
+import type { MoviesResponse, MovieDetails, Credits } from '../../entities/movie/model/types';
 
 // API 클라이언트
 class MovieAPI {
@@ -12,7 +12,7 @@ class MovieAPI {
   }
 
   // 공통 헤더 생성
-  private getHeaders(): HeadersInit {
+  private getHeaders = (): HeadersInit => {
     return {
       'Authorization': `Bearer ${this.accessToken}`,
       'accept': 'application/json'
@@ -20,7 +20,7 @@ class MovieAPI {
   }
 
   // 현재 상영중인 영화 조회
-  async getNowPlaying(page = 1): Promise<MoviesResponse> {
+  getNowPlaying = async (page = 1): Promise<MoviesResponse> => {
     const response = await fetch(
       `${this.baseUrl}/movie/now_playing?language=ko-KR&page=${page}`,
       {
@@ -37,7 +37,7 @@ class MovieAPI {
   }
 
   // 인기 영화 조회
-  async getPopular(page = 1): Promise<MoviesResponse> {
+  getPopular = async (page = 1): Promise<MoviesResponse> => {
     const response = await fetch(
       `${this.baseUrl}/movie/popular?language=ko-KR&page=${page}`,
       {
@@ -54,7 +54,7 @@ class MovieAPI {
   }
 
   // 평점 높은 영화 조회
-  async getTopRated(page = 1): Promise<MoviesResponse> {
+  getTopRated = async (page = 1): Promise<MoviesResponse> => {
     const response = await fetch(
       `${this.baseUrl}/movie/top_rated?language=ko-KR&page=${page}`,
       {
@@ -71,7 +71,7 @@ class MovieAPI {
   }
 
   // 개봉 예정 영화 조회
-  async getUpcoming(page = 1): Promise<MoviesResponse> {
+  getUpcoming = async (page = 1): Promise<MoviesResponse> => {
     const response = await fetch(
       `${this.baseUrl}/movie/upcoming?language=ko-KR&page=${page}`,
       {
@@ -82,6 +82,40 @@ class MovieAPI {
     
     if (!response.ok) {
       throw new Error('영화 데이터를 불러오는데 실패했습니다.');
+    }
+    
+    return response.json();
+  }
+
+  // 영화 상세 정보 조회
+  getMovieDetails = async (movieId: number): Promise<MovieDetails> => {
+    const response = await fetch(
+      `${this.baseUrl}/movie/${movieId}?language=ko-KR`,
+      {
+        method: 'GET',
+        headers: this.getHeaders()
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error('영화 상세 정보를 불러오는데 실패했습니다.');
+    }
+    
+    return response.json();
+  }
+
+  // 영화 출연진/제작진 조회
+  getMovieCredits = async (movieId: number): Promise<Credits> => {
+    const response = await fetch(
+      `${this.baseUrl}/movie/${movieId}/credits?language=ko-KR`,
+      {
+        method: 'GET',
+        headers: this.getHeaders()
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error('영화 출연진/제작진 정보를 불러오는데 실패했습니다.');
     }
     
     return response.json();
