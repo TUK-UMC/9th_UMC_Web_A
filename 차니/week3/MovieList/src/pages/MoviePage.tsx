@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { tmdbAPI } from "../api/api";
-import type { Movie, MovieResponse } from "../types/movie";
+import type { Movie, MovieResponse } from "../types/movie.types";
 import MovieCard from "../components/MovieCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useParams } from "react-router-dom";
@@ -8,6 +8,7 @@ import Pagination from "../components/Pagination";
 
 export default function MoviePage() {
   const [movies, setMovies] = useState<Movie[]>([]);
+
   // 로딩 상태
   const [isPending, setIsPending] = useState(false);
   // 에러 상태
@@ -23,7 +24,7 @@ export default function MoviePage() {
 
       try {
         const { data } = await tmdbAPI.get<MovieResponse>(
-          `https://api.themoviedb.org/3/movie/${category}?language=ko-KR&page=${page}`
+          `/movie/${category}?language=ko-KR&page=${page}`
         );
 
         setMovies(data.results);

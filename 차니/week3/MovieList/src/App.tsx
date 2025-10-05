@@ -4,6 +4,7 @@ import MoviePage from "./pages/MoviePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import { MainLayout } from "./layouts/MainLayout";
 import { HomePage } from "./pages/HomePage";
+import MovieDetailPage from "./pages/MovieDetailPage";
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,10 @@ const router = createBrowserRouter([
       {
         path: "movies/:category",
         element: <MoviePage />,
+      },
+      {
+        path: "movie/:movieId",
+        element: <MovieDetailPage />,
       },
     ],
   },
