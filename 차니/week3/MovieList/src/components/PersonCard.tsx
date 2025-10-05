@@ -8,7 +8,7 @@ export default function PersonCard({
   profilePath: string | null;
 }) {
   return (
-    <div className="w-[140px]">
+    <>
       <div className="w-[140px] h-[140px] rounded-full overflow-hidden bg-white/10 mx-auto border-2 border-white">
         {profilePath ? (
           <img
@@ -33,6 +33,6 @@ export default function PersonCard({
           </p>
         ) : null}
       </div>
-    </div>
+    </>
   );
 }
