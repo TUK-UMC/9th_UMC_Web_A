@@ -1,58 +1,32 @@
-import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
 import type { MovieDetailResponse, CreditResponse } from "../types/movie";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import useCustomFetch from "../hooks/useCustomFetch";
 
 export default function MovieDetailPage() {
-  const [movieDetail, setMovieDetail] = useState<MovieDetailResponse>();
-  const [isPending, setIsPending] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [credits, setCredits] = useState<CreditResponse>();
   const { movieId } = useParams<{ movieId: string }>();
+
+  const {
+    data: movieDetail,
+    isPending,
+    isError,
+  } = useCustomFetch<MovieDetailResponse>(
+    `https://api.themoviedb.org/3/movie/${movieId}?language=ko-KR`
+  );
+  const {
+    data: credits,
+    isPending: creditsIsPending,
+    isError: creditsIsError,
+  } = useCustomFetch<CreditResponse>(
+    `https://api.themoviedb.org/3/movie/${movieId}/credits?language=ko-KR`
+  );
 
   const directors =
     credits?.crew.filter((person) => person.job === "Director") || [];
   const cast = credits?.cast.slice(0, 20) || [];
   const allPeople = [...directors, ...cast];
 
-  useEffect(() => {
-    const fetchMovieData = async () => {
-      setIsPending(true);
-
-      try {
-        const [detailResponse, creditsResponse] = await Promise.all([
-          axios.get<MovieDetailResponse>(
-            `https://api.themoviedb.org/3/movie/${movieId}?language=ko-KR`,
-            {
-              headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_TMDB_KEY}`,
-              },
-            }
-          ),
-          axios.get<CreditResponse>(
-            `https://api.themoviedb.org/3/movie/${movieId}/credits?language=ko-KR`,
-            {
-              headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_TMDB_KEY}`,
-              },
-            }
-          ),
-        ]);
-
-        setMovieDetail(detailResponse.data);
-        setCredits(creditsResponse.data);
-      } catch {
-        setIsError(true);
-      } finally {
-        setIsPending(false);
-      }
-    };
-
-    fetchMovieData();
-  }, [movieId]);
-
-  if (isError) {
+  if (isError || creditsIsError) {
     return (
       <div className="flex justify-center items-center h-dvh">
         <span className="text-red-500 text-2xl">오류가 발생했습니다.</span>
@@ -60,7 +34,7 @@ export default function MovieDetailPage() {
     );
   }
 
-  if (isPending) {
+  if (isPending || creditsIsPending) {
     return (
       <div className="flex justify-center items-center h-dvh">
         <LoadingSpinner />
@@ -68,30 +42,30 @@ export default function MovieDetailPage() {
     );
   }
 
-  if (!movieDetail) return null;
-
   return (
     <div className="relative">
       {/* 배경 이미지 */}
       <div
         className="relative h-[400px] bg-cover bg-center"
         style={{
-          backgroundImage: `url(https://image.tmdb.org/t/p/original${movieDetail.backdrop_path})`,
+          backgroundImage: `url(https://image.tmdb.org/t/p/original${movieDetail?.backdrop_path})`,
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black"></div>
 
         {/* 영화 정보 오버레이 */}
         <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-          <h1 className="text-4xl font-bold mb-2">{movieDetail.title}</h1>
+          <h1 className="text-4xl font-bold mb-2">{movieDetail?.title}</h1>
           <div className="flex gap-4 text-sm mb-3">
-            <span>평점 {movieDetail.vote_average.toFixed(1)}</span>
-            <span>{new Date(movieDetail.release_date).getFullYear()}</span>
-            <span>{movieDetail.runtime}분</span>
+            <span>평점 {movieDetail?.vote_average.toFixed(1)}</span>
+            <span>
+              {new Date(movieDetail?.release_date ?? "").getFullYear()}
+            </span>
+            <span>{movieDetail?.runtime}분</span>
           </div>
-          <p className="text-lg italic mb-4">{movieDetail.tagline}</p>
+          <p className="text-lg italic mb-4">{movieDetail?.tagline}</p>
           <p className="text-white leading-relaxed mb-8">
-            {movieDetail.overview}
+            {movieDetail?.overview}
           </p>
         </div>
       </div>
