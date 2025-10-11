@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { movieApi } from "../../shared/api";
 import { MovieCard } from "../../entities/movie";
 import { useMovieContext } from "../../shared/contexts";
-import type { Movie } from "../../entities/movie";
+import { useCustomFetch } from "../../shared/hooks";
+import type { MoviesResponse } from "../../entities/movie/model";
 
 // 카테고리 정보
 const CATEGORIES = {
@@ -13,35 +14,28 @@ const CATEGORIES = {
 } as const;
 
 export const MovieListWidget = () => {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { currentCategory, currentPage, setTotalPages } = useMovieContext();
 
-  const fetchMovies = async (category: keyof typeof CATEGORIES, page: number = 1) => {
-    try {
-      setLoading(true);
-      const response = await CATEGORIES[category].api(page);
-      setMovies(response.results);
-      setTotalPages(response.total_pages);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "영화를 불러오는데 실패했습니다."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 커스텀 훅 사용
+  const { data: moviesResponse, loading, error } = useCustomFetch<MoviesResponse>(
+    () => CATEGORIES[currentCategory].api(currentPage),
+    { dependencies: [currentCategory, currentPage] }
+  );
 
+  // 총 페이지 수 업데이트
   useEffect(() => {
-    fetchMovies(currentCategory, currentPage);
-  }, [currentCategory, currentPage]);
+    if (moviesResponse) {
+      setTotalPages(moviesResponse.total_pages);
+    }
+  }, [moviesResponse, setTotalPages]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-white text-xl">로딩중...</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-white text-xl">영화를 불러오는 중...</div>
+        </div>
       </div>
     );
   }
@@ -49,7 +43,18 @@ export const MovieListWidget = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500 text-xl">{error}</div>
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">⚠️ {error}</div>
+          <p className="text-gray-400">잠시 후 다시 시도해주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!moviesResponse || moviesResponse.results.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-white text-xl">영화 정보가 없습니다.</div>
       </div>
     );
   }
@@ -58,7 +63,7 @@ export const MovieListWidget = () => {
     <div className="container mx-auto px-4 py-8">
       {/* 영화 목록 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {movies.map((movie) => (
+        {moviesResponse.results.map((movie) => (
           <MovieCard key={movie.id} movie={movie} />
         ))}
       </div>

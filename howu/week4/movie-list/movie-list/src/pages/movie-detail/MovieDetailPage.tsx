@@ -1,27 +1,48 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { getImageUrl } from '../../shared/config';
 import { movieApi } from '../../shared/api';
-import { useCustomFetch } from '../../shared/hooks';
 import type { MovieDetails, Credits } from '../../entities/movie/model/types';
 
 export const MovieDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [movie, setMovie] = useState<MovieDetails | null>(null);
+  const [credits, setCredits] = useState<Credits | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 영화 상세 정보를 커스텀 훅으로 가져오기
-  const { data: movie, loading: movieLoading, error: movieError } = useCustomFetch<MovieDetails>(
-    () => movieApi.getMovieDetails(parseInt(id || '0')),
-    { dependencies: [id] }
-  );
+  useEffect(() => {
+    const fetchMovieDetail = async () => {
+      if (!id) {
+        setError('영화 ID가 제공되지 않았습니다.');
+        setLoading(false);
+        return;
+      }
 
-  // 출연진/제작진 정보를 커스텀 훅으로 가져오기
-  const { data: credits, loading: creditsLoading, error: creditsError } = useCustomFetch<Credits>(
-    () => movieApi.getMovieCredits(parseInt(id || '0')),
-    { dependencies: [id] }
-  );
+      try {
+        setLoading(true);
+        const movieId = parseInt(id);
+        
+        // 영화 상세 정보와 출연진/제작진 정보를 병렬로 가져오기
+        const [movieDetails, movieCredits] = await Promise.all([
+          movieApi.getMovieDetails(movieId),
+          movieApi.getMovieCredits(movieId)
+        ]);
+        
+        setMovie(movieDetails);
+        setCredits(movieCredits);
+        setError(null);
+      } catch (err) {
+        setError('영화 정보를 불러오는데 실패했습니다.');
+        console.error('Error fetching movie:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loading = movieLoading || creditsLoading;
-  const error = movieError || creditsError;
+    fetchMovieDetail();
+  }, [id]);
 
   const handleGoBack = () => {
     navigate(-1);
@@ -30,10 +51,7 @@ export const MovieDetailPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-white text-xl">영화 정보를 불러오는 중...</div>
-        </div>
+        <div className="text-white text-xl">로딩 중...</div>
       </div>
     );
   }
@@ -42,11 +60,10 @@ export const MovieDetailPage = () => {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-xl mb-4">⚠️ {error || '영화를 찾을 수 없습니다.'}</div>
-          <p className="text-gray-400 mb-6">잠시 후 다시 시도해주세요.</p>
+          <div className="text-white text-xl mb-4">{error || '영화를 찾을 수 없습니다.'}</div>
           <button
             onClick={handleGoBack}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
           >
             돌아가기
           </button>
