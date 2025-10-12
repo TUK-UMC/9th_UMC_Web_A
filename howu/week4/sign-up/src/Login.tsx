@@ -1,68 +1,120 @@
-import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
-import { useForm } from "./useForm";
+import { loginSchema } from "./schemas/authSchemas";
+import type { LoginFormData } from "./schemas/authSchemas";
+import { useAuth } from "./hooks/useAuth";
+import type { LoginRequestData, LoginResponseData, ApiResponse } from "./types/auth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const validations = {
-    email: (value: string) => {
-      const re = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-      if (!re.test(value)) {
-        return "유효하지 않은 이메일 형식입니다.";
-      }
-      return null;
-    },
-    password: (value: string) => {
-      if (value.length < 6) {
-        return "비밀번호는 최소 6자 이상이어야 합니다.";
-      }
-      return null;
-    },
-  };
-
-  const { values, errors, handleChange, isButtonDisabled } = useForm({ email: "", password: "" }, validations);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    defaultValues: { email: "", password: "" },
+  });
 
   const handleBack = () => {
     navigate(-1);
   };
 
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      const response = await fetch("http://localhost:8000/v1/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data as LoginRequestData),
+      });
+
+      const result: ApiResponse<LoginResponseData> = await response.json();
+      
+      if (response.ok && response.status === 201) {
+        // 로그인 성공 시 토큰을 로컬 스토리지에 저장
+        if (result.data) {
+          login({
+            id: result.data.id,
+            name: result.data.name,
+            email: data.email,
+            accessToken: result.data.accessToken,
+            refreshToken: result.data.refreshToken,
+          });
+          
+          alert("로그인에 성공했습니다!");
+          // 메인 페이지나 대시보드로 이동
+          navigate("/");
+        }
+      } else {
+        const errorMessage = result.message || "로그인에 실패했습니다.";
+        alert(`로그인 실패: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center p-5">
-      <button className="self-start text-2xl bg-transparent border-none cursor-pointer" onClick={handleBack}>
-        &lt;
-      </button>
-      <h2 className="mt-5 text-lg">이메일과 비밀번호를 입력해주세요.</h2>
-      <form className="flex flex-col w-full max-w-sm mt-5">
-        <div className="flex flex-col">
-          <label className="mt-2.5">이메일</label>
-          <input
-            type="email"
-            name="email"
-            className="p-2.5 mt-1.5 border border-gray-300 rounded"
-            value={values.email}
-            onChange={handleChange}
-          />
-          {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-        </div>
-        <div className="flex flex-col mt-2.5">
-          <label>비밀번호</label>
-          <input
-            type="password"
-            name="password"
-            className="p-2.5 mt-1.5 border border-gray-300 rounded"
-            value={values.password}
-            onChange={handleChange}
-          />
-          {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-        </div>
-        <button type="submit" className="mt-5 p-2.5 bg-blue-500 text-white border-none rounded cursor-pointer disabled:bg-gray-400" disabled={isButtonDisabled()}>
-          로그인
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
+      <div className="w-full max-w-sm">
+        <button 
+          onClick={handleBack}
+          className="text-2xl text-white hover:text-gray-300 mb-8"
+        >
+          ←
         </button>
-      </form>
-      <Link to="/signup" className="mt-5 text-blue-500 no-underline">
-        회원가입
-      </Link>
+        
+        <h2 className="text-2xl font-bold mb-8 text-center">로그인</h2>
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+          <div className="mb-6">
+            <div className="flex items-center mb-2">
+              <span className="text-gray-400 mr-3">✉️</span>
+              <input
+                type="email"
+                placeholder="이메일을 입력해주세요"
+                className="w-full bg-transparent border-b border-gray-600 py-3 text-white placeholder-gray-500 focus:border-pink-500 focus:outline-none"
+                {...register("email")}
+              />
+            </div>
+            {errors.email && <p className="text-red-500 text-sm ml-8">{errors.email.message}</p>}
+          </div>
+          
+          <div className="mb-8">
+            <div className="flex items-center mb-2">
+              <span className="text-gray-400 mr-3">🔒</span>
+              <input
+                type="password"
+                placeholder="비밀번호를 입력해주세요"
+                className="w-full bg-transparent border-b border-gray-600 py-3 text-white placeholder-gray-500 focus:border-pink-500 focus:outline-none"
+                {...register("password")}
+              />
+            </div>
+            {errors.password && <p className="text-red-500 text-sm ml-8">{errors.password.message}</p>}
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={!isValid || isSubmitting}
+            className="w-full py-4 bg-pink-500 text-white rounded-lg font-medium disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed hover:bg-pink-600 transition-colors mb-6"
+          >
+            {isSubmitting ? "로그인 중..." : "로그인"}
+          </button>
+        </form>
+        
+        <div className="text-center">
+          <Link to="/signup" className="text-pink-400 hover:text-pink-300 no-underline">
+            회원가입
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };

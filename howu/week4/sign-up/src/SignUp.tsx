@@ -1,85 +1,111 @@
-import React from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useForm } from "./useForm";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import EmailStep from "./components/EmailStep";
+import PasswordStep from "./components/PasswordStep";
+import NicknameStep from "./components/NicknameStep";
+
+import type { SignupStepData } from "./types/auth";
+
+interface SignUpData extends SignupStepData {}
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [signUpData, setSignUpData] = useState<SignUpData>({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    nickname: "",
+    avatar: undefined
+  });
 
-  const validations = {
-    email: (value: string) => {
-      const re = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-      if (!re.test(value)) {
-        return "유효하지 않은 이메일 형식입니다.";
-      }
-      return null;
-    },
-    password: (value: string) => {
-      if (value.length < 6) {
-        return "비밀번호는 최소 6자 이상이어야 합니다.";
-      }
-      return null;
-    },
-    confirmPassword: (value: string) => {
-      if (values.password !== value) {
-        return "비밀번호가 일치하지 않습니다.";
-      }
-      return null;
-    },
+  const handleEmailNext = (data: { email: string }) => {
+    setSignUpData(prev => ({ ...prev, ...data }));
+    setCurrentStep(2);
   };
 
-  const { values, errors, handleChange, isButtonDisabled } = useForm({ email: "", password: "", confirmPassword: "" }, validations);
+  const handlePasswordNext = (data: { password: string; confirmPassword: string }) => {
+    setSignUpData(prev => ({ ...prev, ...data }));
+    setCurrentStep(3);
+  };
 
-  const handleBack = () => {
-    navigate(-1);
+  const handlePasswordPrev = () => {
+    setCurrentStep(1);
+  };
+
+  const handleNicknamePrev = () => {
+    setCurrentStep(2);
+  };
+
+  const handleNicknameComplete = async (data: { nickname: string; avatar?: string }) => {
+    const finalData = { ...signUpData, ...data };
+    
+    try {
+      const response = await fetch("http://localhost:8000/v1/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: finalData.nickname,
+          email: finalData.email,
+          password: finalData.password,
+          bio: null,
+          avatar: finalData.avatar || null
+        }),
+      });
+      
+      const result = await response.json();
+      console.log(result);
+      
+      if (response.ok && response.status === 201) {
+        alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.");
+        navigate("/login");
+      } else {
+        // API에서 반환하는 구체적인 오류 메시지 표시
+        const errorMessage = result.message || "회원가입에 실패했습니다.";
+        alert(`회원가입 실패: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error("Signup failed:", error);
+      alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+    }
   };
 
   return (
-    <div className="flex flex-col items-center p-5">
-      <button className="self-start text-2xl bg-transparent border-none cursor-pointer" onClick={handleBack}>
-        &lt;
-      </button>
-      <h2 className="mt-5 text-lg">회원가입</h2>
-      <form className="flex flex-col w-full max-w-sm mt-5">
-        <div className="flex flex-col">
-          <label className="mt-2.5">이메일</label>
-          <input
-            type="email"
-            name="email"
-            className="p-2.5 mt-1.5 border border-gray-300 rounded"
-            value={values.email}
-            onChange={handleChange}
-          />
-          {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-        </div>
-        <div className="flex flex-col mt-2.5">
-          <label>비밀번호</label>
-          <input
-            type="password"
-            name="password"
-            className="p-2.5 mt-1.5 border border-gray-300 rounded"
-            value={values.password}
-            onChange={handleChange}
-          />
-          {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-        </div>
-        <div className="flex flex-col mt-2.5">
-          <label>비밀번호 확인</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            className="p-2.5 mt-1.5 border border-gray-300 rounded"
-            value={values.confirmPassword}
-            onChange={handleChange}
-          />
-          {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
-        </div>
-        <button type="submit" className="mt-5 p-2.5 bg-blue-500 text-white border-none rounded cursor-pointer disabled:bg-gray-400" disabled={isButtonDisabled()}>
-          회원가입
-        </button>
-      </form>
-      <Link to="/login" className="mt-5 text-blue-500 no-underline">
-        로그인
-      </Link>
+    <div className="min-h-screen bg-black text-white">
+      {currentStep === 1 && (
+        <EmailStep 
+          onNext={handleEmailNext}
+          initialData={{
+            email: signUpData.email
+          }}
+        />
+      )}
+      
+      {currentStep === 2 && (
+        <PasswordStep 
+          onNext={handlePasswordNext}
+          onPrev={handlePasswordPrev}
+          initialData={{
+            password: signUpData.password,
+            confirmPassword: signUpData.confirmPassword
+          }}
+          email={signUpData.email}
+        />
+      )}
+      
+      {currentStep === 3 && (
+        <NicknameStep 
+          onComplete={handleNicknameComplete}
+          onPrev={handleNicknamePrev}
+          initialData={{
+            nickname: signUpData.nickname
+          }}
+          email={signUpData.email}
+          password={signUpData.password}
+        />
+      )}
     </div>
   );
 };
