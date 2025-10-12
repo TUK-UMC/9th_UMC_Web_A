@@ -1,1 +1,0 @@
-export { movieApi } from "./movieApi";
