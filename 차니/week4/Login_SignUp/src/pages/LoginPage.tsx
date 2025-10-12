@@ -4,8 +4,12 @@ import GoogleIcon from "../assets/google.svg";
 
 import useForm from "../hooks/useForm";
 import { validateSignin, type UserSigninImformation } from "../utils/validate";
+import { postSignin } from "../api/auth";
+import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 export default function LoginPage() {
+  const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
   const navigate = useNavigate();
   const { values, errors, touched, getInPutProps } =
     useForm<UserSigninImformation>({
@@ -18,11 +22,14 @@ export default function LoginPage() {
 
   const handleSubmit = async () => {
     console.log(values);
-  };
-
-  const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate("/");
+    try {
+      const response = await postSignin(values);
+      setItem(response.data.accessToken);
+      navigate("/");
+    } catch (error) {
+      alert(error);
+    }
+    console.log(Response);
   };
 
   // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
@@ -40,16 +47,14 @@ export default function LoginPage() {
         {/* 로그인 박스 */}
         <div className="w-[400px] flex flex-col items-center gap-8">
           {/* 타이틀 */}
-          <div className="flex items-center w-full">
+          <div className="relative flex justify-center items-center w-full">
             <button
-              type="button"
-              aria-label="뒤로가기"
-              onClick={handleBack}
-              className="text-white text-xl cursor-pointer"
+              className="absolute left-0 text-white text-xl cursor-pointer"
+              onClick={() => navigate("/")}
             >
               <img src={ChevronIcon} alt="chevron" className="w-8 h-8" />
             </button>
-            <span className="text-2xl font-medium mx-auto">로그인</span>
+            <h1 className="text-2xl font-medium mx-auto">로그인</h1>
           </div>
 
           {/* 구글 로그인 버튼 */}
@@ -71,7 +76,11 @@ export default function LoginPage() {
               <input
                 {...getInPutProps("email")}
                 type="email"
-                className="w-full px-3 py-4 bg-transparent border border-white rounded-md placeholder-gray focus:outline-none focus:border-pink-500"
+                className={`w-full px-3 py-4 bg-transparent border rounded-md placeholder-gray focus:outline-none ${
+                  errors?.email && touched?.email
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-white focus:border-pink-500"
+                }`}
                 placeholder="이메일을 입력해주세요!"
               />
               {errors?.email && touched?.email && (
@@ -82,7 +91,11 @@ export default function LoginPage() {
               <input
                 {...getInPutProps("password")}
                 type="password"
-                className="w-full px-3 py-4 bg-transparent border border-white rounded-md placeholder-gray focus:outline-none focus:border-pink-500"
+                className={`w-full px-3 py-4 bg-transparent border rounded-md placeholder-gray focus:outline-none ${
+                  errors?.password && touched?.password
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-white focus:border-pink-500"
+                }`}
                 placeholder="비밀번호를 입력해주세요!"
               />
               {errors?.password && touched?.password && (
