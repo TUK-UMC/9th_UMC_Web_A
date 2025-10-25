@@ -2,13 +2,19 @@ import { useNavigate } from "react-router-dom";
 import useForm from "../hooks/useForm";
 import { validateSignin, type UserSigninInformation } from "../utils/validate";
 import { ChevronLeftIcon } from "lucide-react";
-import { postSignin } from "../apis/auth";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useAuth } from "../context/AuthContext";
+import { useEffect } from "react";
 
 const LoginPage = () => {
-  const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+  const { login, accessToken } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (accessToken) {
+      navigate("/");
+    }
+  }, [accessToken, navigate]);
+
   const { values, touched, errors, getInputProps } =
     useForm<UserSigninInformation>({
       initialValues: {
@@ -19,13 +25,7 @@ const LoginPage = () => {
     });
 
   const handleSubmit = async () => {
-    try {
-      const response = await postSignin(values);
-      setItem(response.data.accessToken);
-      console.log(response);
-    } catch (error) {
-      console.error(error);
-    }
+    await login(values);
   };
 
   // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
