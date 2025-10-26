@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmailStep from "./components/EmailStep";
 import PasswordStep from "./components/PasswordStep";
 import NicknameStep from "./components/NicknameStep";
+import { signupUser } from "./api/authApi";
 
 import type { SignupStepData } from "./types/auth";
 
@@ -41,24 +42,15 @@ const SignUp = () => {
     const finalData = { ...signUpData, ...data };
     
     try {
-      const response = await fetch("http://localhost:8000/v1/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: finalData.nickname,
-          email: finalData.email,
-          password: finalData.password,
-          bio: null,
-          avatar: finalData.avatar || null
-        }),
+      const result = await signupUser({
+        name: finalData.nickname,
+        email: finalData.email,
+        password: finalData.password,
+        bio: null,
+        avatar: finalData.avatar || null
       });
       
-      const result = await response.json();
-      console.log(result);
-      
-      if (response.ok && response.status === 201) {
+      if (result.status) {
         alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.");
         navigate("/login");
       } else {

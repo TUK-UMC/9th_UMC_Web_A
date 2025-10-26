@@ -6,7 +6,7 @@ import type { UserProfileData } from "./types/auth";
 
 const MyPage = () => {
   const navigate = useNavigate();
-  const { user, logout, getAccessToken } = useAuth();
+  const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +17,7 @@ const MyPage = () => {
         setLoading(true);
         setError(null);
         
-        const accessToken = getAccessToken();
-        const response = await fetchUserProfile(accessToken);
+        const response = await fetchUserProfile();
         
         if (response.status && response.data) {
           setUserProfile(response.data);

@@ -1,22 +1,14 @@
+import { apiClient } from './axiosInstance';
 import type { ApiResponse, UserProfileData } from "../types/auth";
-
-const API_BASE_URL = "http://localhost:8000/v1";
 
 /**
  * 사용자 정보를 조회하는 API 함수
+ * Axios 인터셉터가 자동으로 토큰 갱신을 처리합니다.
  */
-export async function fetchUserProfile(accessToken: string): Promise<ApiResponse<UserProfileData>> {
+export async function fetchUserProfile(): Promise<ApiResponse<UserProfileData>> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
-    });
-
-    const result: ApiResponse<UserProfileData> = await response.json();
-    return result;
+    const response = await apiClient.get('/users/me');
+    return response.data;
   } catch (error) {
     console.error("Failed to fetch user profile:", error);
     throw new Error("사용자 정보를 불러오는데 실패했습니다.");

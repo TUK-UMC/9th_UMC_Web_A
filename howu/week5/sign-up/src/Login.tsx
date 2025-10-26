@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import { loginSchema } from "./schemas/authSchemas";
 import type { LoginFormData } from "./schemas/authSchemas";
 import { useAuth } from "./hooks/useAuth";
-import type { LoginRequestData, LoginResponseData, ApiResponse } from "./types/auth";
+import { loginUser } from "./api/authApi";
+import type { LoginRequestData } from "./types/auth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,31 +35,21 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      const response = await fetch("http://localhost:8000/v1/auth/signin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data as LoginRequestData),
-      });
-
-      const result: ApiResponse<LoginResponseData> = await response.json();
+      const result = await loginUser(data as LoginRequestData);
       
-      if (response.ok && response.status === 201) {
+      if (result.status && result.data) {
         // 로그인 성공 시 토큰을 로컬 스토리지에 저장
-        if (result.data) {
-          login({
-            id: result.data.id,
-            name: result.data.name,
-            email: data.email,
-            accessToken: result.data.accessToken,
-            refreshToken: result.data.refreshToken,
-          });
-          
-          alert("로그인에 성공했습니다!");
-          // 마이페이지로 이동
-          navigate("/mypage");
-        }
+        login({
+          id: result.data.id,
+          name: result.data.name,
+          email: data.email,
+          accessToken: result.data.accessToken,
+          refreshToken: result.data.refreshToken,
+        });
+        
+        alert("로그인에 성공했습니다!");
+        // 마이페이지로 이동
+        navigate("/mypage");
       } else {
         const errorMessage = result.message || "로그인에 실패했습니다.";
         alert(`로그인 실패: ${errorMessage}`);
