@@ -1,4 +1,5 @@
 import { useLocalStorage } from "./useLocalStorage";
+import { logoutUser } from "../api/authApi";
 import type { UserInfo } from "../types/auth";
 
 const USER_KEY = "user_info";
@@ -15,8 +16,17 @@ export function useAuth() {
   };
 
   // 로그아웃 함수
-  const logout = () => {
-    removeUser();
+  const logout = async () => {
+    try {
+      // 서버에 로그아웃 요청
+      await logoutUser();
+    } catch (error) {
+      console.error('로그아웃 API 호출 실패:', error);
+      // API 호출이 실패해도 로컬에서 로그아웃 처리
+    } finally {
+      // 로컬 스토리지에서 사용자 정보 제거
+      removeUser();
+    }
   };
 
   // 로그인 상태 확인

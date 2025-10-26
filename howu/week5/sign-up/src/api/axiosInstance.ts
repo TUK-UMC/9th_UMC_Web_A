@@ -1,6 +1,5 @@
 import axios from 'axios';
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { useAuth } from '../hooks/useAuth';
+import type { AxiosInstance, AxiosResponse } from 'axios';
 
 const API_BASE_URL = "http://localhost:8000/v1";
 

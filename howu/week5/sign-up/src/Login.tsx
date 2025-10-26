@@ -6,6 +6,7 @@ import { loginSchema } from "./schemas/authSchemas";
 import type { LoginFormData } from "./schemas/authSchemas";
 import { useAuth } from "./hooks/useAuth";
 import { loginUser } from "./api/authApi";
+import GoogleLoginButton from "./components/GoogleLoginButton";
 import type { LoginRequestData } from "./types/auth";
 
 const Login = () => {
@@ -72,6 +73,18 @@ const Login = () => {
         
         <h2 className="text-2xl font-bold mb-8 text-center">로그인</h2>
         
+        {/* Google 로그인 버튼 */}
+        <div className="mb-6">
+          <GoogleLoginButton />
+        </div>
+
+        {/* 구분선 */}
+        <div className="flex items-center mb-6">
+          <div className="flex-1 border-t border-gray-600"></div>
+          <span className="px-4 text-gray-400 text-sm">또는</span>
+          <div className="flex-1 border-t border-gray-600"></div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
           <div className="mb-6">
             <div className="flex items-center mb-2">

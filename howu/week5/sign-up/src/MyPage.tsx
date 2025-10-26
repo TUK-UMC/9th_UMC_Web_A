@@ -35,8 +35,8 @@ const MyPage = () => {
     loadUserProfile();
   }, []); // 의존성 배열을 비워서 컴포넌트 마운트 시에만 실행
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 

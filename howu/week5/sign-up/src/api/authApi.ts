@@ -24,3 +24,19 @@ export async function refreshToken(refreshToken: string): Promise<ApiResponse<{ 
   const response = await apiClient.post('/auth/refresh', { refreshToken });
   return response.data;
 }
+
+/**
+ * 로그아웃 API
+ */
+export async function logoutUser(): Promise<ApiResponse<null>> {
+  const response = await apiClient.post('/auth/signout');
+  return response.data;
+}
+
+/**
+ * Google 로그인 시작 - Google 인증 페이지로 리다이렉트
+ */
+export function startGoogleLogin(): void {
+  window.location.href = 'http://localhost:8000/v1/auth/google/login';
+}
+
