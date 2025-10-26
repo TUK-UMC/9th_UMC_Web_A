@@ -2,13 +2,19 @@ import { useNavigate } from "react-router-dom";
 import useForm from "../hooks/useForm";
 import { validateSignin, type UserSigninInformation } from "../utils/validate";
 import { ChevronLeftIcon } from "lucide-react";
-import { postSignin } from "../apis/auth";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useAuth } from "../context/AuthContext";
+import { useEffect } from "react";
 
 const LoginPage = () => {
-  const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+  const { login, accessToken } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (accessToken) {
+      navigate("/");
+    }
+  }, [accessToken, navigate]);
+
   const { values, touched, errors, getInputProps } =
     useForm<UserSigninInformation>({
       initialValues: {
@@ -19,13 +25,13 @@ const LoginPage = () => {
     });
 
   const handleSubmit = async () => {
-    try {
-      const response = await postSignin(values);
-      setItem(response.data.accessToken);
-      console.log(response);
-    } catch (error) {
-      console.error(error);
-    }
+    await login(values);
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${
+      import.meta.env.VITE_SERVER_API_URL
+    }/v1/auth/google/login`;
   };
 
   // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
@@ -48,7 +54,10 @@ const LoginPage = () => {
         </div>
 
         {/* 구글 로그인 버튼 */}
-        <button className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border border-gray-700 mb-8 transition-colors cursor-pointer">
+        <button
+          onClick={handleGoogleLogin}
+          className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border border-gray-700 mb-8 transition-colors cursor-pointer"
+        >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
