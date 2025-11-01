@@ -78,7 +78,7 @@ const SignupPage = () => {
   const email = getValues("email");
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-180px)] py-12">
       <div className="w-full max-w-[400px] px-6">
         {/* 헤더 */}
         <div className="flex items-center gap-4 mb-12">
