@@ -1,18 +1,37 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import useGetLpList from "../hooks/queries/useGetLpList";
+import { useEffect, useState } from "react";
+// import useGetLpList from "../hooks/queries/useGetLpList";
 import { PAGINATION_ORDER } from "../enums/common";
 import type { PaginationOrder } from "../enums/common";
-import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorState from "../components/ErrorState";
+import useGetInfiniteLpList from "../hooks/queries/useGetInfiniteLpList";
+import { useInView } from "react-intersection-observer";
+import LpCard from "../components/LpCard/LpCard";
+import LpCardSkeletonList from "../components/LpCard/LpCardSkeletonList";
 
 const HomePage = () => {
-  const navigate = useNavigate();
   const [order, setOrder] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
 
-  const { data, isPending, isError, refetch } = useGetLpList({ order });
+  // const { data, isPending, isError, refetch } = useGetLpList({ order });
+  const {
+    data: lps,
+    isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isPending,
+    isError,
+    refetch,
+  } = useGetInfiniteLpList("", order, 50);
 
-  if (isPending) return <LoadingSpinner message="LP를 불러오는 중..." />;
+  // ref, inView
+  // ref -> 특정한 HTML 요소를 감시할 수 있다.
+  // inView -> 그 요소가 화면에 보이면 true
+  const { ref, inView } = useInView({ threshold: 0 });
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetching) {
+      fetchNextPage();
+    }
+  }, [inView, fetchNextPage, hasNextPage, isFetching]);
 
   if (isError)
     return (
@@ -50,46 +69,12 @@ const HomePage = () => {
 
       {/* LP 그리드 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {data?.map((lp) => (
-          <div
-            key={lp.id}
-            className="group cursor-pointer"
-            onClick={() => navigate(`/lp/${lp.id}`)}
-          >
-            {/* 앨범 커버 이미지 + 호버 정보 */}
-            <div className="relative aspect-square overflow-hidden rounded-lg">
-              {/* 앨범 커버 */}
-              <img
-                src={lp.thumbnail}
-                alt={lp.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-
-              {/* 호버 시 나타나는 정보 오버레이 */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                {/* 앨범 제목 */}
-                <h3 className="text-white font-bold text-sm md:text-base mb-2 line-clamp-2">
-                  {lp.title}
-                </h3>
-
-                {/* 날짜와 좋아요 */}
-                <div className="flex items-center justify-between text-xs md:text-sm text-gray-200">
-                  <span>
-                    {new Date(lp.createdAt).toLocaleDateString("ko-KR", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span>❤️</span>
-                    <span>{lp.likes.length}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+        {isPending && <LpCardSkeletonList count={20} />}
+        {lps?.pages?.map((page) =>
+          page.data.data?.flat().map((lp) => <LpCard key={lp.id} lp={lp} />)
+        )}
+        {isFetching && <LpCardSkeletonList count={20} />}
+        <div ref={ref} className="h-2" />
       </div>
 
       {/* 플로팅 버튼 */}

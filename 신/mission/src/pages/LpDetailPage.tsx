@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import useGetLpDetail from "../hooks/queries/useGetLpDetail";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorState from "../components/ErrorState";
@@ -6,6 +6,7 @@ import ErrorState from "../components/ErrorState";
 const LpDetailPage = () => {
   const { lpId } = useParams<{ lpId: string }>();
   const { data: lp, isPending, isError, refetch } = useGetLpDetail(lpId!);
+  const navigate = useNavigate();
 
   if (isPending) {
     return <LoadingSpinner message="LP 상세 정보를 불러오는 중..." />;
@@ -117,13 +118,37 @@ const LpDetailPage = () => {
           </div>
         )}
 
-        {/* 좋아요 */}
-        <div className="flex justify-center">
-          <button className="flex items-center gap-2">
+        {/* 좋아요 & 댓글 */}
+        <div className="flex justify-center gap-6">
+          {/* 좋아요 */}
+          <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <span className="text-2xl">❤️</span>
             <span className="text-white text-xl font-semibold">
               {lp.likes.length}
             </span>
+          </button>
+
+          {/* 댓글 */}
+          <button
+            onClick={() => navigate(`/lp/${lpId}/comments`)}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
           </button>
         </div>
       </div>

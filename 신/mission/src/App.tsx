@@ -11,6 +11,7 @@ import HomeLayout from "./layouts/HomeLayout";
 import SignupPage from "./pages/SignupPage";
 import MyPage from "./pages/MyPage";
 import LpDetailPage from "./pages/LpDetailPage";
+import CommentPage from "./pages/CommentPage";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedLayout from "./layouts/ProtectedLayout";
 import GoogleLoginRedirectPage from "./pages/GoogleLoginRedirectPage";
@@ -41,6 +42,7 @@ const protectedRoutes: RouteObject[] = [
     children: [
       { path: "my", element: <MyPage /> },
       { path: "lp/:lpId", element: <LpDetailPage /> },
+      { path: "lp/:lpId/comments", element: <CommentPage /> },
     ],
   },
 ];
