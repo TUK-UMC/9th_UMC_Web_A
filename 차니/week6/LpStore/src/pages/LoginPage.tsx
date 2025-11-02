@@ -1,21 +1,29 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ChevronIcon from "../assets/chevron.svg";
 import GoogleIcon from "../assets/google.svg";
 
 import useForm from "../hooks/useForm";
 import { validateSignin, type UserSigninImformation } from "../utils/validate";
 import { useAuth } from "../context/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function LoginPage() {
   const { login, accessToken } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation() as { state?: { from?: Location } };
+
+  const backTo = useMemo(() => {
+    const from = location.state?.from;
+    return from
+      ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
+      : "/";
+  }, [location.state]);
 
   useEffect(() => {
     if (accessToken) {
-      navigate("/");
+      navigate(backTo, { replace: true });
     }
-  }, [accessToken, navigate]);
+  }, [accessToken, backTo, navigate]);
 
   const { values, errors, touched, getInPutProps } =
     useForm<UserSigninImformation>({
@@ -28,12 +36,14 @@ export default function LoginPage() {
 
   const handleSubmit = async () => {
     await login(values);
+    navigate(backTo, { replace: true });
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${
-      import.meta.env.VITE_SERVER_API_URL
-    }/v1/auth/google/login`;
+    const server = import.meta.env.VITE_SERVER_API_URL;
+    const url = new URL(`${server}/v1/auth/google/login`);
+    if (backTo) url.searchParams.set("redirect", backTo);
+    window.location.href = url.toString();
   };
 
   // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
@@ -42,7 +52,7 @@ export default function LoginPage() {
     Object.values(values).some((value) => value === ""); // 입력값이 비어있다면 true
 
   return (
-    <div className="w-full h-[calc(100%-90px)] flex flex-col justify-center items-center text-white bg-black">
+    <div className="w-full h-screen flex flex-col justify-center items-center text-white bg-black">
       {/* 로그인 박스 */}
       <div className="w-[400px] flex flex-col items-center gap-8">
         {/* 타이틀 */}

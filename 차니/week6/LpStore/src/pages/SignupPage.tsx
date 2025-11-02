@@ -124,7 +124,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="w-full h-[calc(100%-90px)] flex flex-col justify-center items-center text-white bg-black">
+    <div className="w-full h-screen flex flex-col justify-center items-center text-white bg-black">
       <div className="w-[400px] flex flex-col items-center gap-4">
         <SignupHeader
           title="회원가입"
