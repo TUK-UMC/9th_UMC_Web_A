@@ -1,6 +1,12 @@
 import { useParams } from "react-router-dom";
 import { useLpDetail } from "../hooks/queries/useLpDetail";
 import QueryState from "../components/QueryState";
+import { useEffect, useMemo, useState } from "react";
+import useLpCommentsInfinite from "../hooks/queries/useLpCommentsInfinite";
+import useInView from "../hooks/useInview";
+import CommentItem from "../components/CommentItem";
+import CommentSkeletonList from "../components/CommentSkeletonList";
+import CommentInputBar from "../components/CommentInputBar";
 
 function timeAgo(date: Date | string) {
   const d = new Date(date);
@@ -55,6 +61,33 @@ export default function LpDetailPage() {
   );
 
   const lp = data?.data;
+
+  // 댓글 정렬
+  const [commentOrder, setCommentOrder] = useState<"asc" | "desc">("desc");
+  const cParams = useMemo(
+    () => ({ id: Number(lpId), order: commentOrder, limit: 20 }),
+    [lpId, commentOrder]
+  );
+
+  // 댓글 무한쿼리
+  const {
+    data: cdata,
+    isPending: cPending,
+    isFetchingNextPage: cFetchingNext,
+    hasNextPage: cHasNext,
+    fetchNextPage: cFetchNext,
+  } = useLpCommentsInfinite(cParams.id, cParams.order, cParams.limit);
+
+  // 하단 트리거
+  const { ref: moreRef, inView } = useInView({
+    threshold: 0,
+    rootMargin: "300px 0px",
+  });
+  useEffect(() => {
+    if (inView && cHasNext && !cFetchingNext) cFetchNext();
+  }, [inView, cHasNext, cFetchingNext, cFetchNext]);
+
+  const comments = cdata?.pages.flatMap((p) => p.data.data) ?? [];
 
   return (
     <div className="min-h-dvh bg-black text-white">
@@ -128,6 +161,43 @@ export default function LpDetailPage() {
                   </span>
                 </div>
               </div>
+
+              <section className="mt-2">
+                <h3 className="text-lg font-semibold mb-3">댓글</h3>
+
+                {/* 입력바 + 정렬 토글 (디자인만) */}
+                <CommentInputBar
+                  lpId={String(lpId)}
+                  order={commentOrder}
+                  onChangeOrder={setCommentOrder}
+                />
+
+                <div className="mt-4 rounded-2xl bg-neutral-800/40 p-4">
+                  {/* 상단 스켈레톤 */}
+                  {cPending && <CommentSkeletonList count={8} />}
+
+                  {/* 목록 */}
+                  {!cPending && comments.length > 0 && (
+                    <>
+                      {comments.map((c) => (
+                        <CommentItem key={c.id} c={c} />
+                      ))}
+
+                      {/* 하단 스켈레톤 */}
+                      {cFetchingNext && <CommentSkeletonList count={5} />}
+
+                      {/* sentinel */}
+                      <div ref={moreRef} className="h-2" />
+                    </>
+                  )}
+
+                  {!cPending && comments.length === 0 && (
+                    <p className="text-sm opacity-70 px-1 py-6 text-center">
+                      첫 댓글을 남겨보세요.
+                    </p>
+                  )}
+                </div>
+              </section>
             </article>
           )}
         </QueryState>

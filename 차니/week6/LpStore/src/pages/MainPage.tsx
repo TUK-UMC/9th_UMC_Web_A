@@ -1,87 +1,96 @@
-import { useMemo, useState } from "react";
-import type { PaginationDto } from "../types/common.types";
-import { useLpList } from "../hooks/queries/useLpList";
-import LpCard from "../components/LpCard";
+import { useEffect, useMemo, useState } from "react";
+import { PAGINATION_ORDER } from "../enums/common";
 import type { PaginationOrder } from "../enums/common";
+import useGetInfiniteLpList from "../hooks/queries/useLpListInfinite";
+import QueryState from "../components/QueryState";
+import LpCardSkeletonList from "../components/LpCardSkeletonList";
+import LpCard from "../components/LpCard";
+import useInView from "../hooks/useInview";
 
-type Order = PaginationOrder extends infer T ? T : "desc" | "asc";
+const MainPage = () => {
+  const [order, setOrder] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
 
-export default function MainPage() {
-  const [order, setOrder] = useState<Order>("desc");
+  const params = useMemo(() => ({ search: "", order, limit: 50 }), [order]);
 
-  const queryParams: PaginationDto = useMemo(
-    () => ({ cursor: undefined, search: "", order, limit: 24 }),
-    [order]
-  );
+  const {
+    data,
+    isPending, // 최초 로딩
+    isFetching, // 백그라운드 갱신 배지
+    isFetchingNextPage, // 다음 페이지 로딩
+    hasNextPage,
+    fetchNextPage,
+    isError,
+    refetch,
+  } = useGetInfiniteLpList(params.search, params.order, params.limit);
 
-  const { data, isLoading, isFetching, isError, error, refetch } =
-    useLpList(queryParams);
+  // 관찰 트리거
+  const { ref, inView } = useInView({ threshold: 0, rootMargin: "300px 0px" });
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  if (isError) {
+    return (
+      <QueryState isLoading={false} isError={true} onRetry={() => refetch()}>
+        <></>
+      </QueryState>
+    );
+  }
+
+  // 현재 훅 구현( lastPage.data.data )에 맞춰 플랫맵
+  const items = data?.pages.flatMap((p) => p.data.data) ?? [];
 
   return (
-    <div className="min-h-dvh bg-black text-white">
-      <div className="sticky top-[100px] z-10 flex items-center gap- px-4 py-3 backdrop-blur">
-        <div className="ml-auto flex rounded-md ring-1 ring-white overflow-hidden">
-          <button
-            className={`px-3 py-1.5 text-sm ${
-              order === "asc" ? "bg-white text-black" : "bg-transparent"
-            }`}
-            onClick={() => setOrder("asc" as Order)}
-          >
-            오래된순
-          </button>
-          <button
-            className={`px-3 py-1.5 text-sm ${
-              order === "desc" ? "bg-white text-black" : "bg-transparent"
-            }`}
-            onClick={() => setOrder("desc" as Order)}
-          >
-            최신순
-          </button>
-        </div>
-        {isFetching && !isLoading && (
-          <span className="text-xs opacity-70">갱신 중…</span>
+    <div className="relative p-6 min-h-dvh bg-black text-white">
+      {/* 상단 필터 */}
+      <div className="flex justify-end gap-2 mb-6">
+        <button
+          onClick={() => setOrder(PAGINATION_ORDER.asc)}
+          className={`px-4 py-2 rounded-md transition-colors ${
+            order === PAGINATION_ORDER.asc
+              ? "bg-white text-black"
+              : "bg-transparent text-white"
+          }`}
+        >
+          오래된순
+        </button>
+        <button
+          onClick={() => setOrder(PAGINATION_ORDER.desc)}
+          className={`px-4 py-2 rounded-md transition-colors ${
+            order === PAGINATION_ORDER.desc
+              ? "bg-white text-black"
+              : "bg-transparent text-white"
+          }`}
+        >
+          최신순
+        </button>
+
+        {/* 백그라운드 갱신 배지 */}
+        {isFetching && !isPending && (
+          <span className="ml-3 self-center text-xs opacity-70">갱신 중…</span>
         )}
       </div>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        {isLoading && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square rounded-md bg-white/10 animate-pulse"
-              />
-            ))}
-          </div>
-        )}
+      {/* 그리드 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mx-auto max-w-6xl px-4 py-6">
+        {/* 상단 스켈레톤: 최초 로딩 */}
+        {isPending && <LpCardSkeletonList count={20} />}
 
-        {isError && (
-          <div className="rounded-md border border-red-500/30 bg-red-500/15 p-4">
-            <p className="mb-2">목록을 불러오지 못했습니다.</p>
-            <p className="mb-4 text-sm opacity-80">{error.message}</p>
-            <button
-              onClick={() => refetch()}
-              className="rounded-md bg-red-500 px-3 py-2 text-sm font-medium hover:bg-red-400"
-            >
-              다시 시도
-            </button>
-          </div>
-        )}
+        {/* 아이템 */}
+        {items.map((lp) => (
+          <LpCard item={lp} />
+        ))}
 
-        {!isLoading && !isError && (
-          <>
-            {data?.items?.length ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-visible">
-                {data.items.map((item) => (
-                  <LpCard key={item.id} item={item} />
-                ))}
-              </div>
-            ) : (
-              <p className="opacity-70">표시할 항목이 없어요.</p>
-            )}
-          </>
-        )}
-      </main>
+        {/* 하단 스켈레톤: 다음 페이지 로딩 */}
+        {isFetchingNextPage && <LpCardSkeletonList count={10} />}
+
+        {/* 관찰 트리거 */}
+        <div ref={ref} className="h-2" />
+      </div>
     </div>
   );
-}
+};
+
+export default MainPage;
