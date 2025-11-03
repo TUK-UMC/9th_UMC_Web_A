@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Opts = IntersectionObserverInit & {
-  freezeOnceVisible?: boolean; // 한번 보이면 계속 true 유지하고 싶을 때
+  freezeOnceVisible?: boolean;
 };
 
 export default function useInView({

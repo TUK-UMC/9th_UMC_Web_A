@@ -5,6 +5,7 @@ import type {
 import type { CommentDto, CommentPaginationDto } from "../types/common.types";
 import { axiosInstance } from "./axios";
 
+// 댓글 목록 조회 API
 export const getCommentList = async (
   commentPaginationDto: CommentPaginationDto
 ): Promise<ResponseCommentListDto> => {
@@ -18,6 +19,7 @@ export const getCommentList = async (
   return data;
 };
 
+// 댓글 생성 API
 export const createComment = async (
   commentDto: CommentDto
 ): Promise<ResponseCommentDto> => {

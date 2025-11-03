@@ -95,10 +95,10 @@ export default function LpDetailPage() {
     <div className="min-h-dvh bg-black text-white">
       <div className="mx-auto max-w-6xl px-4 py-6">
         <QueryState
-          isLoading={isLoading} // ✅ 상세 초기 로딩
+          isLoading={isLoading}
           isError={isError}
           error={error}
-          fallback={<LpDetailSkeleton />} // ✅ 상세 스켈레톤
+          fallback={<LpDetailSkeleton />}
           onRetry={() => refetch()}
         >
           {lp && (
@@ -154,7 +154,7 @@ export default function LpDetailPage() {
                 </span>
               )}
 
-              {/* 좋아요 & 액션 바 (UI) */}
+              {/* 좋아요 & 액션 바 */}
               <div className="flex items-center justify-center">
                 <div className="flex items-center gap-2">
                   <button className="rounded-full bg-pink-600 px-4 py-2 text-sm font-medium hover:bg-pink-500 flex items-center gap-3">
@@ -169,7 +169,6 @@ export default function LpDetailPage() {
               <section className="mt-2">
                 <h3 className="text-lg font-semibold mb-3">댓글</h3>
 
-                {/* 입력바 + 정렬 토글 (디자인만) */}
                 <CommentInputBar
                   lpId={String(lpId)}
                   order={commentOrder}
@@ -190,7 +189,6 @@ export default function LpDetailPage() {
                       {/* 하단 스켈레톤 */}
                       {cFetchingNext && <CommentSkeletonList count={5} />}
 
-                      {/* sentinel */}
                       <div ref={moreRef} className="h-2" />
                     </>
                   )}

@@ -20,7 +20,6 @@ export default function CommentInputBar({ lpId, order, onChangeOrder }: Props) {
     onSuccess: () => {
       setValue("");
       setHint(null);
-      // 이 LP의 댓글 쿼리 전부 무효화 (오래된순/최신순 모두)
       qc.invalidateQueries({
         predicate: (q) => {
           const key = q.queryKey;
@@ -48,7 +47,7 @@ export default function CommentInputBar({ lpId, order, onChangeOrder }: Props) {
     try {
       await mutateAsync(text);
     } catch {
-      // 에러 메시지는 아래 표시
+      console.log(error);
     }
   };
 
@@ -74,7 +73,6 @@ export default function CommentInputBar({ lpId, order, onChangeOrder }: Props) {
           {isPending ? "작성 중..." : "작성"}
         </button>
 
-        {/* 정렬 토글 */}
         <div className="ml-auto flex rounded-md ring-1 ring-white/30 overflow-hidden">
           <button
             onClick={() => onChangeOrder("asc")}
@@ -99,7 +97,6 @@ export default function CommentInputBar({ lpId, order, onChangeOrder }: Props) {
         </div>
       </div>
 
-      {/* 유효성/에러 안내 */}
       {(hint || error) && (
         <p className="mt-2 text-xs text-red-300">
           {hint ??

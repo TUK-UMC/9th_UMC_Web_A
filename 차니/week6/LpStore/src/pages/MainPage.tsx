@@ -36,7 +36,6 @@ const MainPage = () => {
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // 현재 훅 구현( lastPage.data.data )에 맞춰 플랫맵
   const items = data?.pages.flatMap((p) => p) ?? [];
 
   useEffect(() => {
@@ -47,7 +46,7 @@ const MainPage = () => {
 
   return (
     <QueryState
-      isLoading={isPending} // ✅ 초기 20개 스켈레톤
+      isLoading={isPending}
       isError={isError}
       error={error}
       fallback={
@@ -99,7 +98,7 @@ const MainPage = () => {
             <LpCard key={lp.id} item={lp} />
           ))}
 
-          {/* 하단 스켈레톤: 다음 페이지 로딩 10개 */}
+          {/* 하단 스켈레톤 */}
           {isFetchingNextPage && <LpCardSkeletonList count={10} />}
 
           {/* 관찰 트리거 */}
