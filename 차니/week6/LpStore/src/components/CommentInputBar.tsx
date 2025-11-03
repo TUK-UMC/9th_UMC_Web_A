@@ -26,7 +26,7 @@ export default function CommentInputBar({ lpId, order, onChangeOrder }: Props) {
           const key = q.queryKey;
           return (
             Array.isArray(key) &&
-            key[0] === QUERY_KEY.lpComments &&
+            key[0] === QUERY_KEY.comments &&
             key[1] === lpId
           );
         },

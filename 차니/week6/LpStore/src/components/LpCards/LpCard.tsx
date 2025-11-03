@@ -1,5 +1,5 @@
-import type { LpItem } from "../hooks/queries/useLpList";
 import { Link } from "react-router-dom";
+import type { LpItem } from "../../hooks/queries/useLpList";
 
 function timeAgo(date: Date | string) {
   const d = new Date(date);

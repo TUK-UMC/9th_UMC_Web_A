@@ -1,14 +1,48 @@
+import React from "react";
+
 type Props = {
-  isLoading: boolean;
+  isLoading?: boolean;
   isError: boolean;
   error?: unknown;
+  fallback?: React.ReactNode;
   onRetry?: () => void;
   children: React.ReactNode;
 };
 
-// 객체 판별용 타입 가드
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
+}
+
+function hasStringMessage(v: unknown): v is { message: string } {
+  return isRecord(v) && typeof v.message === "string";
+}
+
+type HttpResponseLike = {
+  data?: unknown;
+  status?: number;
+  statusText?: string;
+};
+
+function isHttpResponseLike(v: unknown): v is HttpResponseLike {
+  return (
+    isRecord(v) &&
+    ("data" in v ? true : true) && // 존재 여부만 체크(선택 속성)
+    ("status" in v ? typeof v.status === "number" : true) &&
+    ("statusText" in v ? typeof v.statusText === "string" : true)
+  );
+}
+
+type HttpErrorLike = {
+  response?: HttpResponseLike;
+};
+
+function isHttpErrorLike(v: unknown): v is HttpErrorLike {
+  return (
+    isRecord(v) &&
+    ("response" in v
+      ? isHttpResponseLike((v as Record<string, unknown>).response)
+      : true)
+  );
 }
 
 function getErrorMessage(error: unknown): string {
@@ -20,36 +54,24 @@ function getErrorMessage(error: unknown): string {
   // 표준 Error
   if (error instanceof Error) return error.message || "오류가 발생했습니다.";
 
-  if (isRecord(error)) {
-    if ("message" in error && typeof error.message === "string") {
-      return error.message;
-    }
+  // message 속성이 문자열인 객체
+  if (hasStringMessage(error)) return error.message;
 
-    if ("response" in error && isRecord(error.response)) {
-      const resp = error.response;
+  // Axios류 HTTP 에러 형태
+  if (isHttpErrorLike(error) && error.response) {
+    const resp = error.response;
 
-      if ("data" in resp) {
-        const data = (resp as Record<string, unknown>).data;
+    // data가 문자열인 경우
+    if (typeof resp.data === "string") return resp.data;
 
-        if (typeof data === "string") return data;
+    // data 안에 message가 문자열인 경우
+    if (isRecord(resp.data) && hasStringMessage(resp.data))
+      return resp.data.message;
 
-        if (
-          isRecord(data) &&
-          "message" in data &&
-          typeof data.message === "string"
-        ) {
-          return data.message;
-        }
-      }
-
-      if ("statusText" in resp && typeof resp.statusText === "string") {
-        return resp.statusText;
-      }
-
-      if ("status" in resp && typeof resp.status === "number") {
-        return `Request failed with status ${resp.status}`;
-      }
-    }
+    if (typeof resp.statusText === "string" && resp.statusText)
+      return resp.statusText;
+    if (typeof resp.status === "number")
+      return `Request failed with status ${resp.status}`;
   }
 
   return "알 수 없는 오류가 발생했습니다.";
@@ -59,17 +81,12 @@ export default function QueryState({
   isLoading,
   isError,
   error,
+  fallback,
   onRetry,
   children,
 }: Props) {
   if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="h-8 w-40 rounded bg-white/50 animate-pulse mb-6" />
-        <div className="h-80 w-full rounded bg-white/50 animate-pulse mb-6" />
-        <div className="h-16 w-full rounded bg-white/50 animate-pulse" />
-      </div>
-    );
+    return <>{fallback ?? null}</>;
   }
 
   if (isError) {

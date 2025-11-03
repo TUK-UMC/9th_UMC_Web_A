@@ -2,11 +2,12 @@ import { useParams } from "react-router-dom";
 import { useLpDetail } from "../hooks/queries/useLpDetail";
 import QueryState from "../components/QueryState";
 import { useEffect, useMemo, useState } from "react";
-import useLpCommentsInfinite from "../hooks/queries/useLpCommentsInfinite";
+import useLpCommentsInfinite from "../hooks/queries/useGetInfiniteCommentList";
 import useInView from "../hooks/useInview";
-import CommentItem from "../components/CommentItem";
-import CommentSkeletonList from "../components/CommentSkeletonList";
 import CommentInputBar from "../components/CommentInputBar";
+import CommentCard from "../components/CommentCards/CommentCard";
+import LpDetailSkeleton from "../components/LpDetailSkeleton";
+import CommentSkeletonList from "../components/CommentCards/CommentCardSkeletonList";
 
 function timeAgo(date: Date | string) {
   const d = new Date(date);
@@ -65,7 +66,7 @@ export default function LpDetailPage() {
   // 댓글 정렬
   const [commentOrder, setCommentOrder] = useState<"asc" | "desc">("desc");
   const cParams = useMemo(
-    () => ({ id: Number(lpId), order: commentOrder, limit: 20 }),
+    () => ({ id: String(lpId), order: commentOrder, limit: 20 }),
     [lpId, commentOrder]
   );
 
@@ -76,13 +77,14 @@ export default function LpDetailPage() {
     isFetchingNextPage: cFetchingNext,
     hasNextPage: cHasNext,
     fetchNextPage: cFetchNext,
-  } = useLpCommentsInfinite(cParams.id, cParams.order, cParams.limit);
+  } = useLpCommentsInfinite(cParams.id, cParams.limit, cParams.order);
 
   // 하단 트리거
   const { ref: moreRef, inView } = useInView({
     threshold: 0,
-    rootMargin: "300px 0px",
+    rootMargin: "500px 0px 500px 0px",
   });
+
   useEffect(() => {
     if (inView && cHasNext && !cFetchingNext) cFetchNext();
   }, [inView, cHasNext, cFetchingNext, cFetchNext]);
@@ -93,9 +95,10 @@ export default function LpDetailPage() {
     <div className="min-h-dvh bg-black text-white">
       <div className="mx-auto max-w-6xl px-4 py-6">
         <QueryState
-          isLoading={isLoading}
+          isLoading={isLoading} // ✅ 상세 초기 로딩
           isError={isError}
           error={error}
+          fallback={<LpDetailSkeleton />} // ✅ 상세 스켈레톤
           onRetry={() => refetch()}
         >
           {lp && (
@@ -137,6 +140,7 @@ export default function LpDetailPage() {
                     loading="lazy"
                   />
                 </div>
+
                 {/* 백그라운드 갱신 배지 */}
                 {isFetching && !isLoading && (
                   <p className="mt-2 text-xs opacity-70">갱신 중…</p>
@@ -179,8 +183,8 @@ export default function LpDetailPage() {
                   {/* 목록 */}
                   {!cPending && comments.length > 0 && (
                     <>
-                      {comments.map((c) => (
-                        <CommentItem key={c.id} c={c} />
+                      {comments.map((comment) => (
+                        <CommentCard key={comment.id} comment={comment} />
                       ))}
 
                       {/* 하단 스켈레톤 */}
