@@ -21,7 +21,11 @@ function BurgerIcon() {
 
 export const HEADER_H = 90;
 
-export default function Navbar() {
+export default function Navbar({
+  onSidebarChange,
+}: {
+  onSidebarChange?: (openOnDesktop: boolean) => void;
+}) {
   const { logout, accessToken } = useAuth();
   const [data, setData] = useState<ResponseMyInfoDto>();
   const isSmall = useSidebar();
@@ -31,6 +35,10 @@ export default function Navbar() {
   useEffect(() => {
     setOpenSidebar(!isSmall);
   }, [isSmall]);
+
+  useEffect(() => {
+    onSidebarChange?.(!isSmall && openSidebar);
+  }, [openSidebar, isSmall, onSidebarChange]);
 
   useEffect(() => {
     const getData = async () => {

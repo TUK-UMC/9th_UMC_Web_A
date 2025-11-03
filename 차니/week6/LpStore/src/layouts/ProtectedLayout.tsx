@@ -2,7 +2,9 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import FloatingButton from "../components/FloatingButton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import useSidebar from "../hooks/useSidebar";
+import clsx from "clsx";
 
 function RedirectToLogin() {
   const navigate = useNavigate();
@@ -19,14 +21,24 @@ function RedirectToLogin() {
 const ProtectedLayout = () => {
   const { accessToken } = useAuth();
 
+  const isSmall = useSidebar();
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
+
+  const offsetClass = desktopSidebarOpen && !isSmall ? "pl-64" : "";
+
   if (!accessToken) {
     return <RedirectToLogin />;
   }
 
   return (
     <div className="select-none bg-black h-dvh flex flex-col">
-      <Navbar />
-      <main className="flex-1 mt-[90px]">
+      <Navbar onSidebarChange={setDesktopSidebarOpen} />
+      <main
+        className={clsx(
+          "mt-[90px] transition-[padding] duration-200",
+          offsetClass
+        )}
+      >
         <Outlet />
       </main>
       <FloatingButton to="#" />
