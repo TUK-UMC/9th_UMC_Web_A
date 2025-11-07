@@ -1,19 +1,40 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSidebar } from "../context/SidebarContext";
 import useGetMyInfo from "../hooks/queries/useGetMyInfo";
+import useLogout from "../hooks/mutations/useLogout";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/key";
 
 const Navbar = () => {
-  const navigate = useNavigate();
-  const { accessToken, logout } = useAuth();
+  const { accessToken } = useAuth();
   const { toggle } = useSidebar();
+  const { mutateAsync: logout, isPending } = useLogout();
+  const { removeItem: removeAccessToken } = useLocalStorage(
+    LOCAL_STORAGE_KEY.accessToken
+  );
+  const { removeItem: removeRefreshToken } = useLocalStorage(
+    LOCAL_STORAGE_KEY.refreshToken
+  );
 
   // accessToken이 있을 때만 사용자 정보 조회
-  const { data } = useGetMyInfo(!!accessToken);
+  const { data } = useGetMyInfo(accessToken);
 
   const handleLogout = async () => {
-    await logout();
-    navigate("/");
+    try {
+      await logout();
+      // 토큰 제거
+      removeAccessToken();
+      removeRefreshToken();
+      // 로그인 페이지로 리다이렉션
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+      // 실패해도 토큰 제거하고 로그인 페이지로
+      removeAccessToken();
+      removeRefreshToken();
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -101,9 +122,10 @@ const Navbar = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 text-white hover:opacity-80 transition-opacity cursor-pointer"
+              disabled={isPending}
+              className="px-4 py-2 text-white hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              로그아웃
+              {isPending ? "로그아웃 중..." : "로그아웃"}
             </button>
           </>
         )}

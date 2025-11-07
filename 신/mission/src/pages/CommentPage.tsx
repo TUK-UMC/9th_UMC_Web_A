@@ -5,12 +5,12 @@ import useGetCommentList from "../hooks/queries/useGetCommentList";
 import { PAGINATION_ORDER } from "../enums/common";
 import type { PaginationOrder } from "../enums/common";
 import ErrorState from "../components/ErrorState";
-import { createComment } from "../apis/comment";
 import CommentCard from "../components/CommentCard/CommentCard";
 import CommentCardSkeletonList from "../components/CommentCard/CommentCardSkeletonList";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
+import useCreateComment from "../hooks/mutations/useCreateComment";
 
 const schema = z.object({
   content: z.string().min(1, { message: "댓글 내용을 입력해주세요." }),
@@ -33,6 +33,8 @@ const CommentPage = () => {
     resolver: zodResolver(schema),
     mode: "onChange",
   });
+
+  const { mutateAsync: createComment } = useCreateComment();
 
   const {
     data: comments,
@@ -60,7 +62,6 @@ const CommentPage = () => {
         content: data.content,
       });
       reset(); // 입력창 초기화
-      refetch(); // 댓글 목록 새로고침
     } catch (error) {
       console.error("댓글 작성 실패:", error);
       alert("댓글 작성에 실패했습니다.");

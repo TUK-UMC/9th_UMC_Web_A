@@ -29,6 +29,8 @@ const publicRoutes: RouteObject[] = [
       { path: "login", element: <LoginPage /> },
       { path: "signup", element: <SignupPage /> },
       { path: "v1/auth/google/callback", element: <GoogleLoginRedirectPage /> },
+      { path: "lp/:lpId", element: <LpDetailPage /> },
+      { path: "lp/:lpId/comments", element: <CommentPage /> },
     ],
   },
 ];
@@ -39,11 +41,7 @@ const protectedRoutes: RouteObject[] = [
     path: "/",
     element: <ProtectedLayout />,
     errorElement: <NotFoundPage />,
-    children: [
-      { path: "my", element: <MyPage /> },
-      { path: "lp/:lpId", element: <LpDetailPage /> },
-      { path: "lp/:lpId/comments", element: <CommentPage /> },
-    ],
+    children: [{ path: "my", element: <MyPage /> }],
   },
 ];
 

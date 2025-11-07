@@ -1,6 +1,9 @@
 import type {
+  DeleteCommentDto,
   ResponseCommentDto,
   ResponseCommentListDto,
+  ResponseDeleteCommentDto,
+  UpdateCommentDto,
 } from "../types/comment";
 import type { CommentDto, CommentPaginationDto } from "../types/common";
 import { axiosInstance } from "./axios";
@@ -26,6 +29,29 @@ export const createComment = async (
     {
       content: commentDto.content,
     }
+  );
+
+  return data;
+};
+
+export const updateComment = async (
+  updateCommentDto: UpdateCommentDto
+): Promise<ResponseCommentDto> => {
+  const { data } = await axiosInstance.patch(
+    `/v1/lps/${updateCommentDto.lpId}/comments/${updateCommentDto.commentId}`,
+    {
+      content: updateCommentDto.content,
+    }
+  );
+
+  return data;
+};
+
+export const deleteComment = async (
+  deleteCommentDto: DeleteCommentDto
+): Promise<ResponseDeleteCommentDto> => {
+  const { data } = await axiosInstance.delete(
+    `/v1/lps/${deleteCommentDto.lpId}/comments/${deleteCommentDto.commentId}`
   );
 
   return data;

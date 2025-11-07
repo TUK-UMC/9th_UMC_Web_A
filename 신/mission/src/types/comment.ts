@@ -14,3 +14,18 @@ export type Comment = {
 export type ResponseCommentListDto = CursorBasedResponse<Comment[]>;
 
 export type ResponseCommentDto = CommonResponse<Comment>;
+
+export type UpdateCommentDto = {
+  lpId: string;
+  commentId: string;
+  content: string;
+};
+
+export type DeleteCommentDto = {
+  lpId: string;
+  commentId: string;
+};
+
+export type ResponseDeleteCommentDto = CommonResponse<{
+  message: string;
+}>;

@@ -34,6 +34,10 @@ export type Lp = {
   likes: Likes[];
 };
 
+export type RequestLpDto = {
+  lpId: number;
+};
+
 export type ResponseLpListDto = CursorBasedResponse<Lp[]>;
 
 export type ResponseLpDetailDto = CommonResponse<{
@@ -48,4 +52,50 @@ export type ResponseLpDetailDto = CommonResponse<{
   tags: Tag[];
   likes: Likes[];
   author: Author;
+}>;
+
+export type ResponseLikeLpDto = CommonResponse<{
+  id: number;
+  userId: number;
+  lpId: number;
+}>;
+
+export type RequestPostLpDto = {
+  title: string;
+  content: string;
+  thumbnail?: string;
+  tags: string[];
+  published: boolean;
+};
+
+export type ResponsePostLpDto = CommonResponse<{
+  id: number;
+  title: string;
+  content: string;
+  thumbnail: string;
+  published: boolean;
+  authorId: number;
+  createdAt: Date;
+  updatedAt: Date;
+}>;
+
+export type RequestPatchLpDto = {
+  lpId: number;
+  title: string;
+  content: string;
+  thumbnail?: string;
+  tags: string[];
+  published: boolean;
+};
+
+export type ResponsePatchLpDto = CommonResponse<{
+  id: number;
+  title: string;
+  content: string;
+  thumbnail: string;
+  published: boolean;
+  authorId: number;
+  createdAt: Date;
+  updatedAt: Date;
+  tags: Tag[];
 }>;
