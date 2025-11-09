@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * 캐시 항목 타입 정의
@@ -31,10 +31,10 @@ const INITIAL_RETRY_DELAY = 1000;
 export const useCustomFetch = <T>(url: string) => {
   // 서버에서 가져온 데이터를 저장하는 상태
   const [data, setData] = useState<T | null>(null);
-  
+
   // 데이터 로딩 중 여부를 나타내는 상태
   const [isPending, setIsPending] = useState<boolean>(false);
-  
+
   // 에러 발생 여부를 나타내는 상태
   const [isError, setIsError] = useState<boolean>(false);
 
@@ -62,14 +62,14 @@ export const useCustomFetch = <T>(url: string) => {
       if (cachedItem) {
         try {
           const cachedData: CacheEntry<T> = JSON.parse(cachedItem);
-          
+
           // 캐시가 신선한 경우 네트워크 요청 생략
           if (currentTime - cachedData.lastFetched < STALE_TIME) {
             setData(cachedData.data);
             setIsPending(false);
             return;
           }
-          
+
           // 캐시가 오래된 경우 먼저 보여주고 백그라운드에서 새 데이터 가져오기
           setData(cachedData.data);
         } catch {
@@ -104,8 +104,8 @@ export const useCustomFetch = <T>(url: string) => {
         setIsPending(false);
       } catch (error) {
         // 요청이 취소된 경우는 정상 동작이므로 에러로 처리하지 않음
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.log('[Fetch Cancelled] Request cancelled.');
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("[Fetch Cancelled] Request cancelled.");
           return;
         }
 
@@ -113,11 +113,13 @@ export const useCustomFetch = <T>(url: string) => {
         if (currentRetry < MAX_RETRIES) {
           // 지수 백오프: 1초 → 2초 → 4초 → 8초...
           const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, currentRetry);
-          
+
           console.log(
-            `[Retry ${currentRetry + 1}/${MAX_RETRIES}] Retrying in ${retryDelay}ms...`
+            `[Retry ${
+              currentRetry + 1
+            }/${MAX_RETRIES}] Retrying in ${retryDelay}ms...`
           );
-          
+
           // 지연 후 재귀적으로 fetchData 호출 (재시도 횟수 증가)
           retryTimeoutRef.current = window.setTimeout(() => {
             fetchData(currentRetry + 1);
@@ -140,7 +142,7 @@ export const useCustomFetch = <T>(url: string) => {
     return () => {
       // 진행 중인 fetch 요청 취소
       abortControllerRef.current?.abort();
-      
+
       // 예약된 재시도 타이머 취소
       // 이를 통해 컴포넌트가 사라진 후에도 불필요한 재시도가 실행되는 것을 방지
       if (retryTimeoutRef.current !== null) {
@@ -152,4 +154,3 @@ export const useCustomFetch = <T>(url: string) => {
 
   return { data, isPending, isError };
 };
-
