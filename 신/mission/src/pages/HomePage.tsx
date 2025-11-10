@@ -7,9 +7,11 @@ import useGetInfiniteLpList from "../hooks/queries/useGetInfiniteLpList";
 import { useInView } from "react-intersection-observer";
 import LpCard from "../components/LpCard/LpCard";
 import LpCardSkeletonList from "../components/LpCard/LpCardSkeletonList";
+import LpWriteModal from "../components/LpWriteModal";
 
 const HomePage = () => {
   const [order, setOrder] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // const { data, isPending, isError, refetch } = useGetLpList({ order });
   const {
@@ -79,11 +81,18 @@ const HomePage = () => {
 
       {/* 플로팅 버튼 */}
       <button
-        className="fixed bottom-8 right-8 w-14 h-14 bg-[#e91e63] rounded-full text-white text-3xl shadow-lg hover:bg-[#c2185b] transition-colors flex items-center justify-center z-60"
+        onClick={() => setIsModalOpen(true)}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-[#e91e63] rounded-full text-white text-3xl shadow-lg hover:bg-[#c2185b] transition-colors flex items-center justify-center z-60 cursor-pointer"
         aria-label="Add new item"
       >
         +
       </button>
+
+      {/* LP 작성 모달 */}
+      <LpWriteModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };

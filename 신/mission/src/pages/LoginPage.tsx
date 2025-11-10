@@ -4,10 +4,12 @@ import { validateSignin, type UserSigninInformation } from "../utils/validate";
 import { ChevronLeftIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect } from "react";
+import useLogin from "../hooks/mutations/useLogin";
 
 const LoginPage = () => {
-  const { login, accessToken } = useAuth();
+  const { accessToken } = useAuth();
   const navigate = useNavigate();
+  const { mutate: login, isPending } = useLogin();
 
   useEffect(() => {
     if (accessToken) {
@@ -24,8 +26,16 @@ const LoginPage = () => {
       validate: validateSignin,
     });
 
-  const handleSubmit = async () => {
-    await login(values);
+  const handleSubmit = () => {
+    login(values, {
+      onSuccess: () => {
+        window.location.href = "/";
+      },
+      onError: (error) => {
+        console.error("로그인 실패:", error);
+        alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
+      },
+    });
   };
 
   const handleGoogleLogin = () => {
@@ -34,10 +44,11 @@ const LoginPage = () => {
     }/v1/auth/google/login`;
   };
 
-  // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
+  // 오류가 하나라도 있거나, 입력값이 비어있거나, 로딩 중이면 버튼을 비활성화
   const isDisabled =
     Object.values(errors || {}).some((error) => error.length > 0) || // 오류가 있으면 true
-    Object.values(values).some((value) => value === ""); // 입력값이 비어있으면 true
+    Object.values(values).some((value) => value === "") || // 입력값이 비어있으면 true
+    isPending; // 로그인 중이면 true
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-180px)] py-12">
@@ -122,7 +133,7 @@ const LoginPage = () => {
             disabled={isDisabled}
             className="w-full bg-[#e91e63] py-3 rounded-lg font-medium hover:bg-[#c2185b] transition-colors disabled:bg-gray-900 disabled:text-gray-600 disabled:cursor-not-allowed mt-2"
           >
-            로그인
+            {isPending ? "로그인 중..." : "로그인"}
           </button>
         </div>
       </div>

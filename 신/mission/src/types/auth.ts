@@ -42,3 +42,9 @@ export type ResponseMyInfoDto = CommonResponse<{
   createdAt: Date;
   updatedAt: Date;
 }>;
+
+export type PatchMyInfoDto = {
+  name: string;
+  bio?: string;
+  avatar?: string;
+};
