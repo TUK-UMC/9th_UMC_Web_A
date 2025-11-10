@@ -5,6 +5,7 @@ import FloatingButton from "../components/FloatingButton";
 import { useEffect, useState } from "react";
 import useSidebar from "../hooks/useSidebar";
 import clsx from "clsx";
+import LpCreateModal from "../components/LpCreateModal";
 
 function RedirectToLogin() {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const ProtectedLayout = () => {
 
   const offsetClass = desktopSidebarOpen && !isSmall ? "pl-64" : "";
 
+  const [openWrite, setOpenWrite] = useState(false);
+
   if (!accessToken) {
     return <RedirectToLogin />;
   }
@@ -41,7 +44,8 @@ const ProtectedLayout = () => {
       >
         <Outlet />
       </main>
-      <FloatingButton to="#" />
+      <FloatingButton onClick={() => setOpenWrite(true)} />
+      {openWrite && <LpCreateModal onClose={() => setOpenWrite(false)} />}
     </div>
   );
 };

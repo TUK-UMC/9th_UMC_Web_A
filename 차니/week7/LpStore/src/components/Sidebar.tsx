@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useSidebar from "../hooks/useSidebar";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { deleteUser } from "../api/auth";
 
 function SearchIcon() {
   return (
@@ -61,11 +64,27 @@ export default function Sidebar({
   onClose: () => void;
   headerHeight?: number;
 }) {
-  const { accessToken } = useAuth();
+  const { accessToken, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [openModal, setOpenModal] = useState(false);
+
   const isSmall = useSidebar();
+
+  const { mutate: doLeave, isPending: isLeaving } = useMutation({
+    mutationFn: deleteUser, // ⭐️ 탈퇴 API
+    onSuccess: async () => {
+      await logout(); // 토큰/세션 정리
+      navigate("/login", { replace: true }); // 로그인 페이지로
+    },
+  });
 
   const handleItemClick = () => {
     if (isSmall) onClose();
+  };
+
+  const handleWithdraw = () => {
+    setOpenModal(true);
   };
 
   const asideStyle = {
@@ -108,12 +127,47 @@ export default function Sidebar({
           <nav className="px-2 py-4 flex justify-center">
             <Link
               to="#"
-              onClick={handleItemClick}
+              onClick={handleWithdraw}
               className="text-m text-white cursor-pointer"
             >
               탈퇴하기
             </Link>
           </nav>
+          {openModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center">
+              <div
+                className="absolute inset-0 bg-black/60"
+                onClick={() => setOpenModal(false)}
+              />
+              <div className="relative w-[560px] max-w-[92vw] rounded-2xl bg-neutral-800 text-white p-8">
+                <button
+                  className="absolute right-4 top-4 text-white/70 hover:text-white"
+                  onClick={() => setOpenModal(false)}
+                  aria-label="close"
+                >
+                  ×
+                </button>
+                <div className="text-center text-xl font-semibold mb-8">
+                  정말 탈퇴하시겠습니까?
+                </div>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => doLeave()}
+                    disabled={isLeaving}
+                    className="px-8 py-3 rounded-md bg-white/30 hover:bg-white/40 disabled:opacity-50"
+                  >
+                    {isLeaving ? "처리 중..." : "예"}
+                  </button>
+                  <button
+                    onClick={() => setOpenModal(false)}
+                    className="px-8 py-3 rounded-md bg-pink-500 hover:bg-pink-600"
+                  >
+                    아니요
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </>

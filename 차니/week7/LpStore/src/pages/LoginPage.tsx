@@ -1,11 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import ChevronIcon from "../assets/chevron.svg";
 import GoogleIcon from "../assets/google.svg";
-
 import useForm from "../hooks/useForm";
 import { validateSignin, type UserSigninImformation } from "../utils/validate";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useMemo } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 export default function LoginPage() {
   const { login, accessToken } = useAuth();
@@ -34,9 +34,13 @@ export default function LoginPage() {
       validate: validateSignin,
     });
 
-  const handleSubmit = async () => {
-    await login(values);
-    navigate(backTo, { replace: true });
+  const { mutate: doLogin } = useMutation({
+    mutationFn: async () => login(values),
+    onSuccess: () => navigate(backTo, { replace: true }),
+  });
+
+  const handleSubmit = () => {
+    doLogin();
   };
 
   const handleGoogleLogin = () => {

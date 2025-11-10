@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useMemo,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -12,16 +13,50 @@ import { postLogout, postSignin } from "../api/auth";
 interface AuthContextType {
   accessToken: string | null;
   refreshToken: string | null;
+  currentUserId: number | null;
   login: (signInData: RequestSigninDto) => Promise<void>;
   logout: () => Promise<void>;
+}
+
+interface JwtPayload {
+  sub?: number;
+  userId?: number;
+  [key: string]: unknown;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   accessToken: null,
   refreshToken: null,
+  currentUserId: null,
   login: async () => {},
   logout: async () => {},
 });
+
+function decodeJwtPayload(token: string | null): JwtPayload | null {
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  const payloadBase64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+
+  try {
+    const json = atob(payloadBase64);
+    const decoded = decodeURIComponent(
+      Array.prototype.map
+        .call(json, (c: string) => {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(decoded) as JwtPayload;
+  } catch {
+    try {
+      return JSON.parse(atob(payloadBase64)) as JwtPayload;
+    } catch {
+      return null;
+    }
+  }
+}
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const {
@@ -42,6 +77,11 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(
     getRefreshTokenFromStorage()
   );
+
+  const currentUserId = useMemo(() => {
+    const payload = decodeJwtPayload(accessToken);
+    return payload?.userId ?? payload?.sub ?? null;
+  }, [accessToken]);
 
   const login = async (signinData: RequestSigninDto) => {
     try {
@@ -79,7 +119,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   };
 
   return (
-    <AuthContext.Provider value={{ accessToken, refreshToken, login, logout }}>
+    <AuthContext.Provider
+      value={{ accessToken, refreshToken, currentUserId, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

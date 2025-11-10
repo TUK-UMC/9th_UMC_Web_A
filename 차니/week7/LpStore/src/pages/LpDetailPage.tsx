@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useLpDetail } from "../hooks/queries/useLpDetail";
 import QueryState from "../components/QueryState";
 import { useEffect, useMemo, useState } from "react";
@@ -8,6 +8,11 @@ import CommentInputBar from "../components/CommentInputBar";
 import CommentCard from "../components/CommentCards/CommentCard";
 import LpDetailSkeleton from "../components/LpDetailSkeleton";
 import CommentSkeletonList from "../components/CommentCards/CommentCardSkeletonList";
+import { useAuth } from "../context/AuthContext";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMyInfo } from "../api/auth";
+import type { UpdateLpBody } from "../types/lp.types";
+import { deleteLp, updateLp, uploadImage } from "../api/lp";
 
 function timeAgo(date: Date | string) {
   const d = new Date(date);
@@ -61,7 +66,152 @@ export default function LpDetailPage() {
     lpId!
   );
 
+  const { currentUserId } = useAuth();
+
   const lp = data?.data;
+
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const [me, setMe] = useState<{ id: number } | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await getMyInfo();
+        setMe({ id: r.data.id });
+      } catch {
+        setMe(null);
+      }
+    })();
+  }, []);
+
+  const isMine = !!(lp && me && lp.authorId === me.id); // 내 글만 버튼 노출
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState<UpdateLpBody>({
+    title: "",
+    content: "",
+    thumbnail: "",
+    tags: [],
+    published: true,
+  });
+
+  // 파일 업로드용 상태
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
+
+  useEffect(() => {
+    if (lp) {
+      setForm({
+        title: lp.title,
+        content: lp.content,
+        thumbnail: lp.thumbnail,
+        tags: lp.tags?.map((t) => t.name) ?? [],
+        published: lp.published,
+      });
+      setThumbnailFile(null);
+      setThumbnailPreview(lp.thumbnail ?? "");
+    }
+  }, [lp]);
+
+  // 미리보기 URL 메모리 정리
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview && thumbnailPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+    };
+  }, [thumbnailPreview]);
+
+  // 수정
+  const updateMutation = useMutation({
+    mutationFn: (body: UpdateLpBody) => updateLp(Number(lpId), body),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey;
+          return Array.isArray(k) && (k.includes("lp") || k.includes("lps"));
+        },
+      });
+    },
+  });
+
+  // 삭제
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteLp(Number(lpId)),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey;
+          return Array.isArray(k) && (k.includes("lp") || k.includes("lps"));
+        },
+      });
+      navigate("/"); // 삭제 후 홈으로 이동
+    },
+  });
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      alert("이미지 파일을 선택해주세요.");
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      alert("파일 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+    setThumbnailFile(f);
+    const url = URL.createObjectURL(f);
+    setThumbnailPreview((prev) => {
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return url;
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditOpen(false);
+    // 파일 선택 취소 시 원래 썸네일로 복귀
+    setThumbnailFile(null);
+    setThumbnailPreview(form.thumbnail ?? "");
+  };
+
+  const handleEditSubmit = async () => {
+    let thumbnailUrl = form.thumbnail ?? "";
+
+    // 새 파일 선택 시: 업로드 먼저 (/v1/uploads)
+    if (thumbnailFile) {
+      try {
+        thumbnailUrl = await uploadImage(thumbnailFile);
+      } catch {
+        alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+    }
+
+    await updateMutation.mutateAsync({
+      ...form,
+      thumbnail: thumbnailUrl,
+    });
+
+    setEditOpen(false);
+
+    // blob URL 정리
+    if (
+      thumbnailFile &&
+      thumbnailPreview &&
+      thumbnailPreview.startsWith("blob:")
+    ) {
+      URL.revokeObjectURL(thumbnailPreview);
+    }
+    setThumbnailFile(null);
+  };
+
+  const handleDelete = async () => {
+    const ok = window.confirm("정말 삭제할까요?");
+    if (!ok) return;
+    await deleteMutation.mutateAsync();
+  };
 
   // 댓글 정렬
   const [commentOrder, setCommentOrder] = useState<"asc" | "desc">("desc");
@@ -120,14 +270,106 @@ export default function LpDetailPage() {
               {/* 제목 */}
               <div className="flex justify-between items-center">
                 <span className="text-2xl font-bold">{lp.title}</span>
-                <div className="flex items-center gap-2 text-white">
-                  <button className="rounded-md px-2 py-1" title="수정">
-                    <EditIcon className="h-6 w-6" />
-                  </button>
-                  <button className="rounded-md px-2 py-1" title="삭제">
-                    <TrashIcon className="h-6 w-6" />
-                  </button>
-                </div>
+                {isMine && (
+                  <div>
+                    <button
+                      className="rounded-md px-2 py-1"
+                      title="수정"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      <EditIcon className="h-6 w-6" />
+                    </button>
+                    <button
+                      className="rounded-md px-2 py-1"
+                      title="삭제"
+                      onClick={handleDelete}
+                    >
+                      <TrashIcon className="h-6 w-6" />
+                    </button>
+                  </div>
+                )}
+                {editOpen && (
+                  <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center">
+                    <div className="w-full max-w-xl rounded-xl bg-neutral-900 p-5 space-y-3">
+                      <h4 className="text-lg font-semibold">LP 수정</h4>
+
+                      <input
+                        className="w-full rounded-md bg-neutral-800 px-3 py-2"
+                        placeholder="제목"
+                        value={form.title ?? ""}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, title: e.target.value }))
+                        }
+                      />
+                      <textarea
+                        className="w-full h-40 rounded-md bg-neutral-800 px-3 py-2"
+                        placeholder="본문"
+                        value={form.content ?? ""}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, content: e.target.value }))
+                        }
+                      />
+
+                      {/* 이미지 업로드 */}
+                      <div className="space-y-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={onPickFile}
+                          className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white hover:file:bg-white/20"
+                        />
+                        {thumbnailPreview ? (
+                          <img
+                            src={thumbnailPreview}
+                            alt="thumbnail preview"
+                            className="mt-2 max-h-40 rounded-md object-cover"
+                          />
+                        ) : (
+                          <p className="text-xs text-neutral-400">
+                            선택된 이미지가 없어요. 기존 URL을 사용합니다.
+                          </p>
+                        )}
+                      </div>
+
+                      <input
+                        className="w-full rounded-md bg-neutral-800 px-3 py-2"
+                        placeholder="태그(콤마로 구분)"
+                        value={(form.tags ?? []).join(",")}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            tags: e.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          }))
+                        }
+                      />
+
+                      <div className="flex justify-end gap-2">
+                        <button
+                          className="rounded-md px-3 py-2 bg-white/10"
+                          onClick={closeEditModal}
+                        >
+                          취소
+                        </button>
+                        <button
+                          className="rounded-md px-3 py-2 bg-pink-600 disabled:opacity-50"
+                          onClick={handleEditSubmit}
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending ? "저장 중…" : "저장"}
+                        </button>
+                      </div>
+
+                      {(updateMutation.isError || deleteMutation.isError) && (
+                        <p className="text-red-300 text-sm">
+                          저장/삭제에 실패했어요. 잠시 후 다시 시도해주세요.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 썸네일 */}
@@ -183,7 +425,12 @@ export default function LpDetailPage() {
                   {!cPending && comments.length > 0 && (
                     <>
                       {comments.map((comment) => (
-                        <CommentCard key={comment.id} comment={comment} />
+                        <CommentCard
+                          key={comment.id}
+                          lpId={String(lpId)}
+                          comment={comment}
+                          isMine={currentUserId === comment.authorId}
+                        />
                       ))}
 
                       {/* 하단 스켈레톤 */}

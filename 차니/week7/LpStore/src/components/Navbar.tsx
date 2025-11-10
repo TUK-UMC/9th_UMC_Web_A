@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { ResponseMyInfoDto } from "../types/auth.types";
 import Sidebar from "./Sidebar";
 import useSidebar from "../hooks/useSidebar";
+import { useMutation } from "@tanstack/react-query";
 
 function BurgerIcon() {
   return (
@@ -32,6 +33,11 @@ export default function Navbar({
 
   const [openSidebar, setOpenSidebar] = useState<boolean>(() => !isSmall);
 
+  const { mutate: doLogout, isPending: isLoggingOut } = useMutation({
+    mutationFn: logout,
+    onSuccess: () => window.location.assign("/"),
+  });
+
   useEffect(() => {
     setOpenSidebar(!isSmall);
   }, [isSmall]);
@@ -47,10 +53,6 @@ export default function Navbar({
     };
     if (accessToken) getData();
   }, [accessToken]);
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   return (
     <>
@@ -95,8 +97,10 @@ export default function Navbar({
                 {data?.data.name}님 반갑습니다.
               </Link>
               <button
+                type="button"
                 className="px-4 py-2 rounded-sm text-white bg-pink-600 font-semibold cursor-pointer"
-                onClick={handleLogout}
+                onClick={() => doLogout()}
+                disabled={isLoggingOut}
               >
                 로그아웃
               </button>

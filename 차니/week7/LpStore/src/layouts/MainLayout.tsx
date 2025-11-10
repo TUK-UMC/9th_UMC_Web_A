@@ -4,12 +4,15 @@ import FloatingButton from "../components/FloatingButton";
 import { useState } from "react";
 import useSidebar from "../hooks/useSidebar";
 import clsx from "clsx";
+import LpCreateModal from "../components/LpCreateModal";
 
 export const MainLayout = () => {
   const isSmall = useSidebar();
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
 
   const offsetClass = desktopSidebarOpen && !isSmall ? "pl-64" : "";
+
+  const [openWrite, setOpenWrite] = useState(false);
 
   return (
     <div className="select-none bg-black h-dvh flex flex-col">
@@ -22,7 +25,8 @@ export const MainLayout = () => {
       >
         <Outlet />
       </main>
-      <FloatingButton to="#" />
+      <FloatingButton onClick={() => setOpenWrite(true)} />
+      {openWrite && <LpCreateModal onClose={() => setOpenWrite(false)} />}{" "}
     </div>
   );
 };

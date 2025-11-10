@@ -49,3 +49,19 @@ export type ResponseLpDetailDto = CommonResponse<{
   likes: Likes[];
   author: Author;
 }>;
+
+export type CreateLpBody = {
+  title: string;
+  content: string;
+  thumbnail?: string; // 파일 업로드 서버가 없으면 dataURL 전송(데모용)
+  tags: string[]; // 태그 문자열 배열
+  published: boolean;
+};
+
+export type UpdateLpBody = {
+  title?: string;
+  content?: string;
+  thumbnail?: string;
+  tags?: string[]; // 서버가 문자열 배열 받으면 그대로, 아니면 서버 스펙에 맞춰 변환
+  published?: boolean;
+};

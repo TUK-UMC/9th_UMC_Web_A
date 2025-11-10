@@ -32,3 +32,34 @@ export const createComment = async (
 
   return data;
 };
+
+// 댓글 수정 API
+export const patchComment = async ({
+  lpId,
+  commentId,
+  content,
+}: {
+  lpId: number;
+  commentId: number;
+  content: string;
+}) => {
+  const { data } = await axiosInstance.patch(
+    `/v1/lps/${lpId}/comments/${commentId}`,
+    { content }
+  );
+  return data;
+};
+
+// 댓글 삭제 API
+export const removeComment = async ({
+  lpId,
+  commentId,
+}: {
+  lpId: number;
+  commentId: number;
+}) => {
+  const { data } = await axiosInstance.delete(
+    `/v1/lps/${lpId}/comments/${commentId}`
+  );
+  return data;
+};

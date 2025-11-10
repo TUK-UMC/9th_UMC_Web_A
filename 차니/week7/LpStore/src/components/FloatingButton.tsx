@@ -1,19 +1,18 @@
-import { Link } from "react-router-dom";
-
 type FloatingButtonProps = {
-  to?: string;
-  ariaLabel?: string;
+  onClick?: () => void;
 };
 
-export default function FloatingButton({ to = "#" }: FloatingButtonProps) {
+export default function FloatingButton({ onClick }: FloatingButtonProps) {
   return (
-    <Link
-      to={to}
+    <button
+      type="button"
+      onClick={onClick}
       className="
         fixed bottom-10 right-10 z-50
         h-14 w-14 rounded-full
         flex items-center justify-center
         bg-pink-600 text-white
+        cursor-pointer
       "
     >
       <svg
@@ -27,6 +26,6 @@ export default function FloatingButton({ to = "#" }: FloatingButtonProps) {
       >
         <path d="M12 5v14M5 12h14" />
       </svg>
-    </Link>
+    </button>
   );
 }
