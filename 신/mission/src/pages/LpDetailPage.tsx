@@ -411,7 +411,7 @@ const LpDetailPage = () => {
             {/* 좋아요 */}
             <button
               onClick={isLiked ? handleDislikeLp : handleLikeLp}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <Heart
                 color={isLiked ? "red" : "black"}
