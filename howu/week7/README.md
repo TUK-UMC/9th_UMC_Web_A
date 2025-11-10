@@ -103,39 +103,7 @@ React Query와 Infinite Scroll을 활용한 LP 수집 애플리케이션입니�
 - 호버 효과 및 애니메이션
 - 다크 테마 디자인
 
-## 📁 프로젝트 구조
 
-```
-src/
-├── api/
-│   ├── authApi.ts          # 인증 API
-│   ├── axiosInstance.ts    # Axios 설정 (토큰 갱신)
-│   ├── commentApi.ts       # 댓글 API
-│   ├── lpApi.ts            # LP API
-│   └── userApi.ts          # 사용자 API
-├── components/
-│   ├── AuthGuard.tsx       # 인증 보호 컴포넌트
-│   ├── EmailStep.tsx       # 이메일 입력 단계
-│   ├── GoogleLoginButton.tsx # Google 로그인 버튼
-│   ├── Layout.tsx          # 레이아웃 (헤더/사이드바)
-│   ├── LpCardSkeleton.tsx  # 스켈레톤 UI
-│   ├── NicknameStep.tsx    # 닉네임 입력 단계
-│   └── PasswordStep.tsx    # 비밀번호 입력 단계
-├── hooks/
-│   ├── useAuth.ts          # 인증 훅
-│   └── useLocalStorage.ts  # 로컬 스토리지 훅
-├── schemas/
-│   └── authSchemas.ts      # Zod 스키마
-├── types/
-│   └── auth.ts             # TypeScript 타입
-├── App.tsx                 # 라우팅 설정
-├── Login.tsx               # 로그인 페이지
-├── MainPage.tsx            # LP 목록 페이지
-├── LpDetailPage.tsx        # LP 상세 페이지
-├── MyPage.tsx              # 마이페이지
-├── GoogleCallback.tsx      # Google OAuth 콜백
-└── main.tsx                # 진입점
-```
 
 ## 🔗 참고 자료
 
