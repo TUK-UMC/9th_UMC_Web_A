@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ResponseMyInfoDto } from "../types/auth.types";
-import { getMyInfo } from "../api/auth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { patchMyInfo } from "../api/auth";
 import type { RequestUpdateMeDto } from "../types/auth.types";
 import { uploadImage } from "../api/lp";
+import useMyInfo from "../hooks/queries/useMyInfo";
+import { QUERY_KEY } from "../constants/key";
 
 export const MyPage = () => {
-  const [me, setMe] = useState<ResponseMyInfoDto["data"]>();
+  const qc = useQueryClient();
+  const { data: meResp } = useMyInfo();
+  const me = meResp?.data;
+
   const [open, setOpen] = useState(false);
 
   // 편집 폼 상태
@@ -17,14 +21,11 @@ export const MyPage = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const res = await getMyInfo();
-      setMe(res.data);
-      setName(res.data.name ?? "");
-      setBio(res.data.bio ?? "");
-      setAvatarPreview(res.data.avatar ?? null);
-    })();
-  }, []);
+    if (!me) return;
+    setName(me.name ?? "");
+    setBio(me.bio ?? "");
+    setAvatarPreview(me.avatar ?? null);
+  }, [me]);
 
   useEffect(() => {
     return () => {
@@ -53,13 +54,45 @@ export const MyPage = () => {
       const res = await patchMyInfo(body);
       return res.data;
     },
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: [QUERY_KEY.me] });
+
+      const prev = qc.getQueryData<ResponseMyInfoDto>([QUERY_KEY.me]);
+
+      qc.setQueryData<ResponseMyInfoDto>([QUERY_KEY.me], (old) => {
+        if (!old) return old as any;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            name: name.trim(),
+            bio: bio.trim() === "" ? null : bio.trim(),
+          },
+        };
+      });
+
+      return { prev };
+    },
+    // 실패하면 롤백
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData([QUERY_KEY.me], ctx.prev);
+    },
+
+    // 성공하면 서버 값으로 캐시 교체 + 로컬 폼/미리보기 동기화
     onSuccess: (updated) => {
-      setMe(updated);
+      qc.setQueryData<ResponseMyInfoDto>([QUERY_KEY.me], (old) =>
+        old ? { ...old, data: updated } : (old as any)
+      );
       setName(updated.name ?? "");
       setBio(updated.bio ?? "");
       setAvatarPreview(updated.avatar ?? null);
       setAvatarFile(null);
       setOpen(false);
+    },
+
+    // 최종적으로 서버와 동기화 보장
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY.me] });
     },
   });
 

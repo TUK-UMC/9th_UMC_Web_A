@@ -12,7 +12,13 @@ import { useAuth } from "../context/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyInfo } from "../api/auth";
 import type { UpdateLpBody } from "../types/lp.types";
-import { deleteLp, updateLp, uploadImage } from "../api/lp";
+import {
+  deleteLike,
+  deleteLp,
+  postLike,
+  updateLp,
+  uploadImage,
+} from "../api/lp";
 
 function timeAgo(date: Date | string) {
   const d = new Date(date);
@@ -69,6 +75,134 @@ export default function LpDetailPage() {
   const { currentUserId } = useAuth();
 
   const lp = data?.data;
+
+  const liked = !!(
+    lp &&
+    currentUserId &&
+    lp.likes?.some((l) => l.userId === currentUserId)
+  );
+  const likeCount = lp?.likes?.length ?? 0;
+
+  function dedupLikes(
+    arr: Array<{ id: number; userId: number; lpId: number }>
+  ) {
+    const seen = new Set<number>();
+    const out: typeof arr = [];
+    for (const it of arr) {
+      if (seen.has(it.userId)) continue;
+      seen.add(it.userId);
+      out.push(it);
+    }
+    return out;
+  }
+
+  const likeMutation = useMutation({
+    mutationFn: async (willLike: boolean) => {
+      const id = Number(lpId);
+      return willLike ? postLike(id) : deleteLike(id);
+    },
+
+    onMutate: async (willLike) => {
+      // 관련 쿼리들 취소
+      await qc.cancelQueries({
+        predicate: (q) => {
+          const k = q.queryKey;
+          return Array.isArray(k) && (k.includes("lp") || k.includes("lps"));
+        },
+      });
+
+      // 스냅샷 저장
+      const prevDetail = qc.getQueryData<any>(["lp", lpId]);
+      const prevLists = qc.getQueriesData({
+        predicate: (q) => {
+          const k = q.queryKey;
+          return Array.isArray(k) && k.includes("lps"); // 목록(무한스크롤 포함)
+        },
+      });
+
+      const myId = currentUserId;
+      if (!myId) return { prevDetail, prevLists }; // 로그인 고려 안하더라도 방어
+
+      // 상세 캐시 즉시 변경
+      qc.setQueryData<any>(["lp", lpId], (old) => {
+        if (!old?.data) return old;
+        const wasLiked = old.data.likes?.some((l: any) => l.userId === myId);
+        const nextLikes = willLike
+          ? [
+              ...(old.data.likes ?? []),
+              { id: -1, userId: myId, lpId: Number(lpId) },
+            ] // 임시 like
+          : (old.data.likes ?? []).filter((l: any) => l.userId !== myId);
+
+        return { ...old, data: { ...old.data, likes: dedupLikes(nextLikes) } };
+      });
+
+      // 목록 캐시들도 동일하게 반영(있을 경우만)
+      prevLists.forEach(([key]) => {
+        qc.setQueryData<any>(key, (data) => {
+          if (!data) return data;
+
+          // 무한쿼리(pages) 형태와 일반 리스트 둘 다 대응
+          if (Array.isArray(data?.pages)) {
+            const pages = data.pages.map((p: any) => ({
+              ...p,
+              data: {
+                ...p.data,
+                data: p.data?.data?.map((item: any) => {
+                  if (item.id !== Number(lpId)) return item;
+                  const wasLiked = item.likes?.some(
+                    (l: any) => l.userId === myId
+                  );
+                  const nextLikes = willLike
+                    ? [
+                        ...(item.likes ?? []),
+                        { id: -1, userId: myId, lpId: Number(lpId) },
+                      ]
+                    : (item.likes ?? []).filter((l: any) => l.userId !== myId);
+                  return { ...item, likes: dedupLikes(nextLikes) };
+                }),
+              },
+            }));
+            return { ...data, pages };
+          } else if (Array.isArray(data?.data)) {
+            const next = data.data.map((item: any) => {
+              if (item.id !== Number(lpId)) return item;
+              const nextLikes = willLike
+                ? [
+                    ...(item.likes ?? []),
+                    { id: -1, userId: myId, lpId: Number(lpId) },
+                  ]
+                : (item.likes ?? []).filter((l: any) => l.userId !== myId);
+              return { ...item, likes: dedupLikes(nextLikes) };
+            });
+            return { ...data, data: next };
+          }
+          return data;
+        });
+      });
+
+      return { prevDetail, prevLists };
+    },
+
+    // 실패 시 롤백
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prevDetail) qc.setQueryData(["lp", lpId], ctx.prevDetail);
+      if (ctx?.prevLists) {
+        ctx.prevLists.forEach(([key, val]: any) => qc.setQueryData(key, val));
+      }
+    },
+
+    // 최종 동기화
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["lp", lpId] });
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey;
+          return Array.isArray(k) && k.includes("lps");
+        },
+      });
+    },
+  });
 
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -399,12 +533,20 @@ export default function LpDetailPage() {
               {/* 좋아요 & 액션 바 */}
               <div className="flex items-center justify-center">
                 <div className="flex items-center gap-2">
-                  <button className="rounded-full bg-pink-600 px-4 py-2 text-sm font-medium hover:bg-pink-500 flex items-center gap-3">
-                    <HeartIcon className="w-6 h-6" /> 좋아요
+                  <button
+                    className={`rounded-full px-4 py-2 text-sm font-medium flex items-center gap-3 ${
+                      liked ? "bg-pink-600" : "bg-neutral-700"
+                    } ${
+                      likeMutation.isPending
+                        ? "opacity-60 pointer-events-none"
+                        : "hover:bg-pink-500"
+                    }`}
+                    onClick={() => likeMutation.mutate(!liked)}
+                  >
+                    <HeartIcon className="w-6 h-6" />
+                    {liked ? "좋아요 취소" : "좋아요"}
                   </button>
-                  <span className="text-sm opacity-80">
-                    {lp.likes?.length ?? 0}
-                  </span>
+                  <span className="text-sm opacity-80">{likeCount}</span>
                 </div>
               </div>
 

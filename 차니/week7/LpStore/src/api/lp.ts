@@ -60,3 +60,25 @@ export const uploadImage = async (file: File): Promise<string> => {
   if (!url) throw new Error("imageUrl이 응답에 없습니다.");
   return url as string;
 };
+
+// 좋아요 추가
+export const postLike = async (lpId: number) => {
+  const { data } = await axiosInstance.post(`/v1/lps/${lpId}/likes`);
+  return data as {
+    status: boolean;
+    statusCode: number;
+    message: string;
+    data: { id: number; userId: number; lpId: number };
+  };
+};
+
+// 좋아요 취소
+export const deleteLike = async (lpId: number) => {
+  const { data } = await axiosInstance.delete(`/v1/lps/${lpId}/likes`);
+  return data as {
+    status: boolean;
+    statusCode: number;
+    message: string;
+    data: { id: number; userId: number; lpId: number };
+  };
+};

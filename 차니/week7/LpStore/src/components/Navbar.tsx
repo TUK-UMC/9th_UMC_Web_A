@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getMyInfo } from "../api/auth";
 import { useEffect, useState } from "react";
-import type { ResponseMyInfoDto } from "../types/auth.types";
 import Sidebar from "./Sidebar";
 import useSidebar from "../hooks/useSidebar";
 import { useMutation } from "@tanstack/react-query";
+import useMyInfo from "../hooks/queries/useMyInfo";
 
 function BurgerIcon() {
   return (
@@ -28,7 +27,7 @@ export default function Navbar({
   onSidebarChange?: (openOnDesktop: boolean) => void;
 }) {
   const { logout, accessToken } = useAuth();
-  const [data, setData] = useState<ResponseMyInfoDto>();
+  const { data } = useMyInfo();
   const isSmall = useSidebar();
 
   const [openSidebar, setOpenSidebar] = useState<boolean>(() => !isSmall);
@@ -45,14 +44,6 @@ export default function Navbar({
   useEffect(() => {
     onSidebarChange?.(!isSmall && openSidebar);
   }, [openSidebar, isSmall, onSidebarChange]);
-
-  useEffect(() => {
-    const getData = async () => {
-      const response = await getMyInfo();
-      setData(response);
-    };
-    if (accessToken) getData();
-  }, [accessToken]);
 
   return (
     <>
