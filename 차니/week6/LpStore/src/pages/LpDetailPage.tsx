@@ -198,6 +198,8 @@ export default function LpDetailPage() {
                       첫 댓글을 남겨보세요.
                     </p>
                   )}
+
+                  <div ref={moreRef} className="h-2" />
                 </div>
               </section>
             </article>
