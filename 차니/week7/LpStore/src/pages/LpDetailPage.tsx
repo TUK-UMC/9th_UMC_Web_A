@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useLpDetail } from "../hooks/queries/useLpDetail";
 import QueryState from "../components/QueryState";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type SVGProps } from "react";
 import useLpCommentsInfinite from "../hooks/queries/useGetInfiniteCommentList";
 import useInView from "../hooks/useInview";
 import CommentInputBar from "../components/CommentInputBar";
@@ -9,9 +9,18 @@ import CommentCard from "../components/CommentCards/CommentCard";
 import LpDetailSkeleton from "../components/LpDetailSkeleton";
 import CommentSkeletonList from "../components/CommentCards/CommentCardSkeletonList";
 import { useAuth } from "../context/AuthContext";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyInfo } from "../api/auth";
-import type { UpdateLpBody } from "../types/lp.types";
+import {
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+  type QueryKey,
+} from "@tanstack/react-query";
+import type {
+  Likes,
+  ResponseLpDetailDto,
+  ResponseLpListDto,
+  UpdateLpBody,
+} from "../types/lp.types";
 import {
   deleteLike,
   deleteLp,
@@ -31,7 +40,7 @@ function timeAgo(date: Date | string) {
   return `${days} days ago`;
 }
 
-function EditIcon(props: React.SVGProps<SVGSVGElement>) {
+function EditIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
       <path
@@ -43,7 +52,7 @@ function EditIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function TrashIcon(props: React.SVGProps<SVGSVGElement>) {
+function TrashIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
       <path d="M9 3h6l1 2h4v2H4V5h4l1-2z" fill="currentColor" />
@@ -55,7 +64,7 @@ function TrashIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function HeartIcon(props: React.SVGProps<SVGSVGElement>) {
+function HeartIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
       <path
@@ -66,8 +75,70 @@ function HeartIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+// 목록 쿼리 데이터 타입 (일반 리스트 + 무한 스크롤 리스트)
+type LpListQueryData = ResponseLpListDto | InfiniteData<ResponseLpListDto>;
+
+// 목록 아이템 타입
+type LpListItem = ResponseLpListDto["data"]["data"]["data"][number];
+
+// 좋아요 뮤테이션 context 타입
+type LikeMutationContext = {
+  prevDetail?: ResponseLpDetailDto;
+  prevLists: Array<[QueryKey, LpListQueryData | undefined]>;
+};
+
+// InfiniteData인지 판별하는 타입 가드
+function isInfiniteLpList(
+  data: LpListQueryData
+): data is InfiniteData<ResponseLpListDto> {
+  return "pages" in data;
+}
+
+function dedupLikes(arr: Likes[]) {
+  const seen = new Set<number>();
+  const out: Likes[] = [];
+  for (const it of arr) {
+    if (seen.has(it.userId)) continue;
+    seen.add(it.userId);
+    out.push(it);
+  }
+  return out;
+}
+
+// 단일 ResponseLpListDto에서 likes만 갱신하는 헬퍼
+function updateLikesInListDto(
+  dto: ResponseLpListDto,
+  lpIdNum: number,
+  myId: number,
+  willLike: boolean,
+  tempLike: Likes
+): ResponseLpListDto {
+  const items = dto.data.data.data.map((item): LpListItem => {
+    if (item.id !== lpIdNum) return item;
+    const currentLikes: Likes[] = item.likes ?? [];
+    const nextLikes: Likes[] = willLike
+      ? [...currentLikes, tempLike]
+      : currentLikes.filter((like) => like.userId !== myId);
+    return { ...item, likes: dedupLikes(nextLikes) };
+  });
+
+  return {
+    ...dto,
+    data: {
+      ...dto.data,
+      data: {
+        ...dto.data.data,
+        data: items,
+      },
+    },
+  };
+}
+
 export default function LpDetailPage() {
   const { lpId } = useParams<{ lpId: string }>();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
   const { data, isLoading, isFetching, isError, error, refetch } = useLpDetail(
     lpId!
   );
@@ -83,26 +154,20 @@ export default function LpDetailPage() {
   );
   const likeCount = lp?.likes?.length ?? 0;
 
-  function dedupLikes(
-    arr: Array<{ id: number; userId: number; lpId: number }>
-  ) {
-    const seen = new Set<number>();
-    const out: typeof arr = [];
-    for (const it of arr) {
-      if (seen.has(it.userId)) continue;
-      seen.add(it.userId);
-      out.push(it);
-    }
-    return out;
-  }
-
-  const likeMutation = useMutation({
+  const likeMutation = useMutation<
+    unknown,
+    Error,
+    boolean,
+    LikeMutationContext
+  >({
     mutationFn: async (willLike: boolean) => {
       const id = Number(lpId);
       return willLike ? postLike(id) : deleteLike(id);
     },
 
     onMutate: async (willLike) => {
+      const lpIdNum = Number(lpId);
+
       // 관련 쿼리들 취소
       await qc.cancelQueries({
         predicate: (q) => {
@@ -112,72 +177,80 @@ export default function LpDetailPage() {
       });
 
       // 스냅샷 저장
-      const prevDetail = qc.getQueryData<any>(["lp", lpId]);
-      const prevLists = qc.getQueriesData({
+      const prevDetail =
+        qc.getQueryData<ResponseLpDetailDto>(["lp", lpId]) ?? undefined;
+
+      const rawPrevLists = qc.getQueriesData<LpListQueryData>({
         predicate: (q) => {
           const k = q.queryKey;
           return Array.isArray(k) && k.includes("lps"); // 목록(무한스크롤 포함)
         },
       });
 
+      const prevLists: Array<[QueryKey, LpListQueryData | undefined]> =
+        rawPrevLists.map(([key, value]) => [
+          key,
+          value as LpListQueryData | undefined,
+        ]);
+
       const myId = currentUserId;
-      if (!myId) return { prevDetail, prevLists }; // 로그인 고려 안하더라도 방어
+      if (!myId) {
+        // 로그인 안 되어 있으면 캐시만 복구할 수 있게 context만 리턴
+        return { prevDetail, prevLists };
+      }
+
+      const tempLike: Likes = {
+        id: -1,
+        userId: myId,
+        lpId: lpIdNum,
+      };
 
       // 상세 캐시 즉시 변경
-      qc.setQueryData<any>(["lp", lpId], (old) => {
+      qc.setQueryData<ResponseLpDetailDto | undefined>(["lp", lpId], (old) => {
         if (!old?.data) return old;
-        const wasLiked = old.data.likes?.some((l: any) => l.userId === myId);
-        const nextLikes = willLike
-          ? [
-              ...(old.data.likes ?? []),
-              { id: -1, userId: myId, lpId: Number(lpId) },
-            ] // 임시 like
-          : (old.data.likes ?? []).filter((l: any) => l.userId !== myId);
+        const currentLikes: Likes[] = old.data.likes ?? [];
+        const nextLikes: Likes[] = willLike
+          ? [...currentLikes, tempLike]
+          : currentLikes.filter((like: Likes) => like.userId !== myId);
 
-        return { ...old, data: { ...old.data, likes: dedupLikes(nextLikes) } };
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            likes: dedupLikes(nextLikes),
+          },
+        };
       });
 
       // 목록 캐시들도 동일하게 반영(있을 경우만)
       prevLists.forEach(([key]) => {
-        qc.setQueryData<any>(key, (data) => {
-          if (!data) return data;
+        qc.setQueryData<LpListQueryData | undefined>(key, (old) => {
+          if (!old) return old;
 
-          // 무한쿼리(pages) 형태와 일반 리스트 둘 다 대응
-          if (Array.isArray(data?.pages)) {
-            const pages = data.pages.map((p: any) => ({
-              ...p,
-              data: {
-                ...p.data,
-                data: p.data?.data?.map((item: any) => {
-                  if (item.id !== Number(lpId)) return item;
-                  const wasLiked = item.likes?.some(
-                    (l: any) => l.userId === myId
-                  );
-                  const nextLikes = willLike
-                    ? [
-                        ...(item.likes ?? []),
-                        { id: -1, userId: myId, lpId: Number(lpId) },
-                      ]
-                    : (item.likes ?? []).filter((l: any) => l.userId !== myId);
-                  return { ...item, likes: dedupLikes(nextLikes) };
-                }),
-              },
-            }));
-            return { ...data, pages };
-          } else if (Array.isArray(data?.data)) {
-            const next = data.data.map((item: any) => {
-              if (item.id !== Number(lpId)) return item;
-              const nextLikes = willLike
-                ? [
-                    ...(item.likes ?? []),
-                    { id: -1, userId: myId, lpId: Number(lpId) },
-                  ]
-                : (item.likes ?? []).filter((l: any) => l.userId !== myId);
-              return { ...item, likes: dedupLikes(nextLikes) };
-            });
-            return { ...data, data: next };
+          // 1) 무한 스크롤 형태 (InfiniteData)
+          if (isInfiniteLpList(old)) {
+            const pages = old.pages.map((p) =>
+              updateLikesInListDto(p, lpIdNum, myId, willLike, tempLike)
+            );
+
+            const nextInfinite: InfiniteData<ResponseLpListDto> = {
+              ...old,
+              pages,
+            };
+
+            return nextInfinite;
           }
-          return data;
+
+          // 2) 일반 리스트 형태 (ResponseLpListDto)
+          const nextSingle = updateLikesInListDto(
+            old,
+            lpIdNum,
+            myId,
+            willLike,
+            tempLike
+          );
+
+          return nextSingle;
         });
       });
 
@@ -186,9 +259,13 @@ export default function LpDetailPage() {
 
     // 실패 시 롤백
     onError: (_e, _v, ctx) => {
-      if (ctx?.prevDetail) qc.setQueryData(["lp", lpId], ctx.prevDetail);
+      if (ctx?.prevDetail) {
+        qc.setQueryData<ResponseLpDetailDto>(["lp", lpId], ctx.prevDetail);
+      }
       if (ctx?.prevLists) {
-        ctx.prevLists.forEach(([key, val]: any) => qc.setQueryData(key, val));
+        ctx.prevLists.forEach(([key, value]) => {
+          qc.setQueryData<LpListQueryData | undefined>(key, value);
+        });
       }
     },
 
@@ -204,22 +281,8 @@ export default function LpDetailPage() {
     },
   });
 
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-
-  const [me, setMe] = useState<{ id: number } | null>(null);
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await getMyInfo();
-        setMe({ id: r.data.id });
-      } catch {
-        setMe(null);
-      }
-    })();
-  }, []);
-
-  const isMine = !!(lp && me && lp.authorId === me.id); // 내 글만 버튼 노출
+  // 내 글인지 여부: JWT에서 파싱한 currentUserId 기준
+  const isMine = !!(lp && currentUserId && lp.authorId === currentUserId);
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<UpdateLpBody>({

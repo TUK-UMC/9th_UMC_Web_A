@@ -4,6 +4,7 @@ import useSidebar from "../hooks/useSidebar";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { deleteUser } from "../api/auth";
+import { createPortal } from "react-dom";
 
 function SearchIcon() {
   return (
@@ -66,16 +67,14 @@ export default function Sidebar({
 }) {
   const { accessToken, logout } = useAuth();
   const navigate = useNavigate();
-
   const [openModal, setOpenModal] = useState(false);
-
   const isSmall = useSidebar();
 
   const { mutate: doLeave, isPending: isLeaving } = useMutation({
-    mutationFn: deleteUser, // ⭐️ 탈퇴 API
+    mutationFn: deleteUser,
     onSuccess: async () => {
-      await logout(); // 토큰/세션 정리
-      navigate("/login", { replace: true }); // 로그인 페이지로
+      await logout();
+      navigate("/login", { replace: true });
     },
   });
 
@@ -91,6 +90,55 @@ export default function Sidebar({
     top: headerHeight,
     height: `calc(100vh - ${headerHeight}px)`,
   } as const;
+
+  const modal =
+    openModal &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center text-white">
+        <div
+          className="absolute inset-0 bg-black/60"
+          onClick={() => !isLeaving && setOpenModal(false)}
+        />
+        <div className="relative w-[600px] max-w-[92vw] rounded-2xl bg-neutral-900 p-6 shadow-xl">
+          <button
+            className="absolute right-4 top-4 text-white/70 hover:text-white"
+            onClick={() => !isLeaving && setOpenModal(false)}
+            aria-label="close"
+          >
+            ×
+          </button>
+
+          <h2 className="text-xl font-semibold mb-6">회원 탈퇴</h2>
+
+          <p className="mb-6 text-sm opacity-80">
+            정말 탈퇴하시겠습니까?
+            <br />
+            탈퇴 시 계정과 관련된 정보가 삭제되며, 복구가 어려울 수 있습니다.
+          </p>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setOpenModal(false)}
+              disabled={isLeaving}
+              className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => doLeave()}
+              disabled={isLeaving}
+              className="px-4 py-2 rounded-md bg-pink-600 hover:bg-pink-500 disabled:bg-gray-500"
+            >
+              {isLeaving ? "처리 중…" : "탈퇴하기"}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
 
   return (
     <>
@@ -125,51 +173,18 @@ export default function Sidebar({
             )}
           </nav>
           <nav className="px-2 py-4 flex justify-center">
-            <Link
-              to="#"
+            <button
+              type="button"
               onClick={handleWithdraw}
               className="text-m text-white cursor-pointer"
             >
               탈퇴하기
-            </Link>
+            </button>
           </nav>
-          {openModal && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center">
-              <div
-                className="absolute inset-0 bg-black/60"
-                onClick={() => setOpenModal(false)}
-              />
-              <div className="relative w-[560px] max-w-[92vw] rounded-2xl bg-neutral-800 text-white p-8">
-                <button
-                  className="absolute right-4 top-4 text-white/70 hover:text-white"
-                  onClick={() => setOpenModal(false)}
-                  aria-label="close"
-                >
-                  ×
-                </button>
-                <div className="text-center text-xl font-semibold mb-8">
-                  정말 탈퇴하시겠습니까?
-                </div>
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    onClick={() => doLeave()}
-                    disabled={isLeaving}
-                    className="px-8 py-3 rounded-md bg-white/30 hover:bg-white/40 disabled:opacity-50"
-                  >
-                    {isLeaving ? "처리 중..." : "예"}
-                  </button>
-                  <button
-                    onClick={() => setOpenModal(false)}
-                    className="px-8 py-3 rounded-md bg-pink-500 hover:bg-pink-600"
-                  >
-                    아니요
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </aside>
+
+      {modal}
     </>
   );
 }

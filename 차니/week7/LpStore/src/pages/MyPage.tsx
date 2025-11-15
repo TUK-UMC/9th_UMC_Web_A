@@ -60,7 +60,7 @@ export const MyPage = () => {
       const prev = qc.getQueryData<ResponseMyInfoDto>([QUERY_KEY.me]);
 
       qc.setQueryData<ResponseMyInfoDto>([QUERY_KEY.me], (old) => {
-        if (!old) return old as any;
+        if (!old) return old;
         return {
           ...old,
           data: {
@@ -81,7 +81,7 @@ export const MyPage = () => {
     // 성공하면 서버 값으로 캐시 교체 + 로컬 폼/미리보기 동기화
     onSuccess: (updated) => {
       qc.setQueryData<ResponseMyInfoDto>([QUERY_KEY.me], (old) =>
-        old ? { ...old, data: updated } : (old as any)
+        old ? { ...old, data: updated } : old
       );
       setName(updated.name ?? "");
       setBio(updated.bio ?? "");
