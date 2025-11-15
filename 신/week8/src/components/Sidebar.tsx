@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { useSidebar } from "../context/SidebarContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useDeleteUser from "../hooks/mutations/useDeleteUser";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { LOCAL_STORAGE_KEY } from "../constants/key";
 
 const Sidebar = () => {
-  const { isOpen } = useSidebar();
+  const { isOpen, close } = useSidebar();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { mutateAsync: deleteUser, isPending } = useDeleteUser();
   const { removeItem: removeAccessToken } = useLocalStorage(
@@ -38,19 +38,46 @@ const Sidebar = () => {
     setShowDeleteModal(false);
   };
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        close();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen, close]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   return (
     <>
       {/* 사이드바 */}
       <aside
         className={`
-          fixed top-[64px] left-0 h-[calc(100vh-64px)] w-64 bg-[#1a1a1a] z-40
+          fixed top-[64px] left-0 h-[calc(100vh-64px)] w-64 bg-[#1a1a1a]
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           flex flex-col z-60
         `}
+        role="dialog"
       >
         {/* 메뉴 아이템들 */}
-        <nav className="flex-1 px-4 pt-6">
+        <nav className="flex-1 px-4 pt-6 backdrop-blur-sm">
           {/* 찾기 */}
           <Link
             to="/search"
