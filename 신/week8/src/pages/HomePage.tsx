@@ -9,8 +9,12 @@ import LpCard from "../components/LpCard/LpCard";
 import LpCardSkeletonList from "../components/LpCard/LpCardSkeletonList";
 import LpWriteModal from "../components/LpWriteModal";
 import useDebounce from "../hooks/useDebounce";
-import { SEARCH_DEBOUNCE_DELAY } from "../constants/delay";
+import {
+  // SCROLL_THROTTLE_DELAY,
+  SEARCH_DEBOUNCE_DELAY,
+} from "../constants/delay";
 import { Search } from "lucide-react";
+// import useThrottle from "../hooks/useThrottle";
 
 const HomePage = () => {
   const [order, setOrder] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
@@ -33,12 +37,19 @@ const HomePage = () => {
   // ref -> 특정한 HTML 요소를 감시할 수 있다.
   // inView -> 그 요소가 화면에 보이면 true
   const { ref, inView } = useInView({ threshold: 0 });
+  // const throttledInView = useThrottle(inView, SCROLL_THROTTLE_DELAY);
 
   useEffect(() => {
     if (inView && hasNextPage && !isFetching) {
       fetchNextPage();
     }
   }, [inView, fetchNextPage, hasNextPage, isFetching]);
+
+  // useEffect(() => {
+  //   if (throttledInView && hasNextPage) {
+  //     fetchNextPage();
+  //   }
+  // }, [throttledInView, fetchNextPage, hasNextPage]);
 
   if (isError)
     return (
