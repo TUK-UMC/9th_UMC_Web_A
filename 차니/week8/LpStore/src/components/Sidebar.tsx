@@ -1,11 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useSidebar from "../hooks/useSidebar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { deleteUser } from "../api/auth";
 import { createPortal } from "react-dom";
-import { SearchIcon, UserIcon } from "../assets/icons";
+import { CloseIcon, SearchIcon, UserIcon } from "../assets/icons";
 
 function Item({
   to,
@@ -60,6 +60,38 @@ export default function Sidebar({
     setOpenModal(true);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    if (typeof window === "undefined") return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Esc") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const body = document.body;
+
+    if (open) {
+      const prevOverflow = body.style.overflow;
+      body.style.overflow = "hidden";
+
+      return () => {
+        body.style.overflow = prevOverflow;
+      };
+    }
+  }, [open]);
+
   const asideStyle = {
     top: headerHeight,
     height: `calc(100vh - ${headerHeight}px)`,
@@ -80,7 +112,7 @@ export default function Sidebar({
             onClick={() => !isLeaving && setOpenModal(false)}
             aria-label="close"
           >
-            ×
+            <CloseIcon />
           </button>
 
           <h2 className="text-xl font-semibold mb-6">회원 탈퇴</h2>
@@ -119,7 +151,7 @@ export default function Sidebar({
       {isSmall && open && (
         <div
           onClick={onClose}
-          className="fixed inset-x-0 bottom-0 bg-black/40 z-40 md:hidden"
+          className="fixed inset-x-0 bottom-0 bg-black/40 z-50 md:hidden"
           style={{ top: headerHeight }}
         />
       )}

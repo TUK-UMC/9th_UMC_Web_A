@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import useSidebar from "../hooks/useSidebar";
 import { useMutation } from "@tanstack/react-query";
@@ -16,9 +16,8 @@ export default function Navbar({
 }) {
   const { logout, accessToken } = useAuth();
   const { data } = useMyInfo();
-  const isSmall = useSidebar();
 
-  const [openSidebar, setOpenSidebar] = useState<boolean>(() => !isSmall);
+  const { isSmall, open, toggleSidebar, closeSidebar } = useSidebar();
 
   const { mutate: doLogout, isPending: isLoggingOut } = useMutation({
     mutationFn: logout,
@@ -26,12 +25,8 @@ export default function Navbar({
   });
 
   useEffect(() => {
-    setOpenSidebar(!isSmall);
-  }, [isSmall]);
-
-  useEffect(() => {
-    onSidebarChange?.(!isSmall && openSidebar);
-  }, [openSidebar, isSmall, onSidebarChange]);
+    onSidebarChange?.(!isSmall && open);
+  }, [open, isSmall, onSidebarChange]);
 
   return (
     <>
@@ -40,7 +35,7 @@ export default function Navbar({
           <div className="flex items-center gap-5">
             <button
               className="cursor-pointer text-white"
-              onClick={() => setOpenSidebar((v) => !v)}
+              onClick={toggleSidebar}
             >
               <BurgerIcon />
             </button>
@@ -88,11 +83,7 @@ export default function Navbar({
         </div>
       </div>
 
-      <Sidebar
-        open={openSidebar}
-        onClose={() => setOpenSidebar(false)}
-        headerHeight={HEADER_H}
-      />
+      <Sidebar open={open} onClose={closeSidebar} headerHeight={HEADER_H} />
     </>
   );
 }
