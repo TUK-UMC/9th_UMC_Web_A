@@ -3,18 +3,24 @@ import { PAGINATION_ORDER } from "../enums/common";
 import type { PaginationOrder } from "../enums/common";
 import useGetInfiniteLpList from "../hooks/queries/useGetInfiniteLpList";
 import QueryState from "../components/QueryState";
-import useInView from "../hooks/useInview";
 import LpCardSkeletonList from "../components/LpCards/LpCardSkeletonList";
 import LpCard from "../components/LpCards/LpCard";
 import useDebounce from "../hooks/useDebounce";
 import { SearchIcon } from "../assets/icons";
+import useThrottle from "../hooks/useThrottle";
+
+const THROTTLE_INTERVAL = 3000;
 
 const MainPage = () => {
   const [order, setOrder] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
 
-  const [query, setQuery] = useState(" ");
+  const [query, setQuery] = useState("");
+
+  const [scrollY, setScrollY] = useState(0);
 
   const debouncedQuery = useDebounce(query, 500);
+
+  const throttledScrollY = useThrottle(scrollY, THROTTLE_INTERVAL);
 
   // 공백만 있는 경우는 빈 문자열로 정규화
   const normalizedSearch = debouncedQuery.trim();
@@ -40,20 +46,47 @@ const MainPage = () => {
     refetch,
   } = useGetInfiniteLpList(params.search, params.order, params.limit);
 
-  // 관찰 트리거
-  const { ref, inView } = useInView({
-    threshold: 0,
-    rootMargin: "600px 0px 600px 0px",
-  });
-
-  useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   const items = data?.pages.flatMap((p) => p) ?? [];
 
+  // 1. 스크롤 이벤트에서 원본 scrollY 업데이트
+  useEffect(() => {
+    const handleScroll = () => {
+      const y = window.scrollY;
+      setScrollY(y);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // 2. 쓰로틀된 스크롤 값 기준으로만 무한 스크롤
+  useEffect(() => {
+    // 쓰로틀된 값이 3초에 한 번씩만 바뀌는지 확인
+    console.log(
+      "%cThrottling Scroll",
+      "color: #22c55e",
+      throttledScrollY,
+      "time:",
+      new Date().toLocaleTimeString()
+    );
+
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    // 현재 화면의 바닥 위치
+    const scrollPosition = window.innerHeight + throttledScrollY;
+    const threshold = 400; // 바닥에서 얼마나 남았을 때 다음 페이지를 불러올지 여유값
+
+    if (scrollPosition >= document.documentElement.scrollHeight - threshold) {
+      console.log(
+        "%cfetchNextPage 호출",
+        "color: #f97316; font-weight: bold;",
+        new Date().toLocaleTimeString()
+      );
+      fetchNextPage();
+    }
+  }, [throttledScrollY, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // 3. 초기 데이터가 너무 적으면 스크롤 안 해도 미리 더 불러오기
   useEffect(() => {
     if (!isPending && items.length < 10 && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -70,8 +103,6 @@ const MainPage = () => {
           <div className="flex justify-end gap-2 mb-6"></div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mx-auto max-w-6xl px-4 py-6">
             <LpCardSkeletonList count={20} />
-            {/* 관찰 트리거: 항상 렌더 */}
-            <div ref={ref} className="h-2 col-span-full" />
           </div>
         </div>
       }
@@ -133,9 +164,6 @@ const MainPage = () => {
 
           {/* 하단 스켈레톤 */}
           {isFetchingNextPage && <LpCardSkeletonList count={10} />}
-
-          {/* 관찰 트리거 */}
-          <div ref={ref} className="h-2 col-span-full" />
         </div>
       </div>
     </QueryState>
