@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useLpDetail } from "../hooks/queries/useLpDetail";
 import QueryState from "../components/QueryState";
-import { useEffect, useMemo, useState, type SVGProps } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useLpCommentsInfinite from "../hooks/queries/useGetInfiniteCommentList";
 import useInView from "../hooks/useInview";
 import CommentInputBar from "../components/CommentInputBar";
@@ -28,6 +28,7 @@ import {
   updateLp,
   uploadImage,
 } from "../api/lp";
+import { EditIcon, HeartIcon, TrashIcon } from "../assets/icons";
 
 function timeAgo(date: Date | string) {
   const d = new Date(date);
@@ -38,41 +39,6 @@ function timeAgo(date: Date | string) {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return `${days} days ago`;
-}
-
-function EditIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-      <path
-        d="M3 21h4.5L19.06 9.44a1.5 1.5 0 0 0 0-2.12l-2.38-2.38a1.5 1.5 0 0 0-2.12 0L3 16.5V21z"
-        fill="currentColor"
-      />
-      <path d="M14.06 5.94 18.06 9.94" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function TrashIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-      <path d="M9 3h6l1 2h4v2H4V5h4l1-2z" fill="currentColor" />
-      <path
-        d="M6 9h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function HeartIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-      <path
-        d="M12 21s-6.7-4.33-9.33-7a6 6 0 0 1 8.49-8.49L12 6.35l.84-.84a6 6 0 0 1 8.49 8.49C18.7 16.67 12 21 12 21z"
-        fill="currentColor"
-      />
-    </svg>
-  );
 }
 
 // 목록 쿼리 데이터 타입 (일반 리스트 + 무한 스크롤 리스트)
