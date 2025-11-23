@@ -1,5 +1,6 @@
-import { useDispatch } from "../hooks/useCustomRedux";
-import { decrease, increase, removeItem } from "../slices/cartSlice";
+import { useCartActions } from "../hooks/useCartStore";
+// import { useDispatch } from "../hooks/useCustomRedux";
+// import { decrease, increase, removeItem } from "../slices/cartSlice";
 import type { Lp } from "../types/cart";
 
 interface CartItemProps {
@@ -7,19 +8,33 @@ interface CartItemProps {
 }
 
 const CartItem = ({ lp }: CartItemProps) => {
-  const dispatch = useDispatch();
+  const { increase, decrease, removeItem } = useCartActions();
+  // const dispatch = useDispatch();
+
+  // const handleIncreaseCount = () => {
+  //   dispatch(increase({ id: lp.id }));
+  // };
 
   const handleIncreaseCount = () => {
-    dispatch(increase({ id: lp.id }));
+    increase(lp.id);
   };
+
+  // const handleDecreaseCount = () => {
+  //   if (lp.amount === 1) {
+  //     dispatch(removeItem({ id: lp.id }));
+  //     return;
+  //   }
+
+  //   dispatch(decrease({ id: lp.id }));
+  // };
 
   const handleDecreaseCount = () => {
     if (lp.amount === 1) {
-      dispatch(removeItem({ id: lp.id }));
+      removeItem(lp.id);
       return;
     }
 
-    dispatch(decrease({ id: lp.id }));
+    decrease(lp.id);
   };
 
   return (

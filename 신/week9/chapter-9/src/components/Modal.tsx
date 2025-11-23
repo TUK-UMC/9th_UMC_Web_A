@@ -1,20 +1,29 @@
-import { useDispatch, useSelector } from "../hooks/useCustomRedux";
-import { closeModal } from "../slices/modalSlice";
-import { clearCart } from "../slices/cartSlice";
+// import { useDispatch, useSelector } from "../hooks/useCustomRedux";
+// import { closeModal } from "../slices/modalSlice";
+// import { clearCart } from "../slices/cartSlice";
+import { useModalState, useModalActions } from "../hooks/useModalStore";
+import { useCartActions } from "../hooks/useCartStore";
 
 const Modal = () => {
-  const { isOpen } = useSelector((state) => state.modal);
-  const dispatch = useDispatch();
+  const isOpen = useModalState();
+  const { closeModal } = useModalActions();
+  const { clearCart } = useCartActions();
+
+  // const { isOpen } = useSelector((state) => state.modal);
+  // const dispatch = useDispatch();
 
   const handleClose = () => {
-    dispatch(closeModal());
+    // dispatch(closeModal());
+    closeModal();
   };
 
   const handleConfirm = () => {
     // 장바구니 초기화
-    dispatch(clearCart());
+    // dispatch(clearCart());
+    clearCart();
     // 모달 닫기
-    dispatch(closeModal());
+    // dispatch(closeModal());
+    closeModal();
   };
 
   if (!isOpen) return null;
